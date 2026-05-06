@@ -1,4 +1,5 @@
 import type {
+  ClassSlot, ClassSlotCreate, ClassSlotUpdate,
   Course, CourseCreate, CourseUpdate,
   Material, MaterialCreate, MaterialUpdate,
   Settings,
@@ -77,5 +78,16 @@ export const api = {
     reorder: (tasks: { id: number; position: number; status: string }[]) =>
       request<Task[]>("/tasks/reorder", { method: "PATCH", body: JSON.stringify({ tasks }) }),
     delete: (id: number) => request<void>(`/tasks/${id}`, { method: "DELETE" }),
+  },
+
+  // ── Schedule ─────────────────────────────────────────────────────────────────
+
+  schedule: {
+    list: () => request<ClassSlot[]>("/schedule"),
+    create: (data: ClassSlotCreate) =>
+      request<ClassSlot>("/schedule", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: number, data: ClassSlotUpdate) =>
+      request<ClassSlot>(`/schedule/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: number) => request<void>(`/schedule/${id}`, { method: "DELETE" }),
   },
 };

@@ -111,3 +111,20 @@ class WeeklyDiagnostic(Base):
     responses = Column(JSON, nullable=True)
     ai_feedback = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class ClassSchedule(Base):
+    __tablename__ = "class_schedule"
+
+    id = Column(Integer, primary_key=True, index=True)
+    course_id = Column(Integer, ForeignKey("courses.id"), nullable=True)
+    subject_name = Column(String, nullable=False)
+    instructor = Column(String, nullable=True)
+    # 0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday
+    day_of_week = Column(Integer, nullable=False)
+    start_time = Column(String, nullable=False)   # "08:15"
+    end_time = Column(String, nullable=False)     # "11:45"
+    room = Column(String, nullable=True)
+    color_code = Column(String, default="#6B7C5E")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

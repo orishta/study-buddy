@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import {
   LayoutDashboard,
-  BookOpen,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   Plus,
@@ -60,6 +60,13 @@ export function Sidebar() {
           icon={<LayoutDashboard size={16} />}
           label="Dashboard"
           active={pathname === "/"}
+          collapsed={collapsed}
+        />
+        <NavItem
+          href="/schedule"
+          icon={<CalendarDays size={16} />}
+          label="Schedule"
+          active={pathname === "/schedule"}
           collapsed={collapsed}
         />
 

@@ -101,3 +101,40 @@ export interface MaterialUpdate {
   understanding_level?: number;
   notes?: string | null;
 }
+
+export interface ClassSlot {
+  id: number;
+  subject_name: string;
+  instructor: string | null;
+  day_of_week: number;    // 0=Sun … 5=Fri
+  start_time: string;     // "HH:MM"
+  end_time: string;
+  room: string | null;
+  color_code: string;
+  course_id: number | null;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface ClassSlotCreate {
+  subject_name: string;
+  instructor?: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  room?: string;
+  color_code?: string;
+  course_id?: number | null;
+}
+
+export interface ClassSlotUpdate {
+  subject_name?: string;
+  instructor?: string;
+  day_of_week?: number;
+  start_time?: string;
+  end_time?: string;
+  room?: string;
+  color_code?: string;
+  course_id?: number | null;
+  is_active?: boolean;
+}

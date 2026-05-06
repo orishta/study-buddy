@@ -149,3 +149,44 @@ class TaskOut(BaseModel):
 
 class TaskWithSubtasks(TaskOut):
     subtasks: list[TaskOut] = []
+
+
+# ── Schedule ──────────────────────────────────────────────────────────────────
+
+class ClassSlotCreate(BaseModel):
+    subject_name: str
+    instructor: Optional[str] = None
+    day_of_week: int                     # 0=Sun … 5=Fri
+    start_time: str                      # "HH:MM"
+    end_time: str
+    room: Optional[str] = None
+    color_code: str = "#6B7C5E"
+    course_id: Optional[int] = None
+
+
+class ClassSlotUpdate(BaseModel):
+    subject_name: Optional[str] = None
+    instructor: Optional[str] = None
+    day_of_week: Optional[int] = None
+    start_time: Optional[str] = None
+    end_time: Optional[str] = None
+    room: Optional[str] = None
+    color_code: Optional[str] = None
+    course_id: Optional[int] = None
+    is_active: Optional[bool] = None
+
+
+class ClassSlotOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    subject_name: str
+    instructor: Optional[str]
+    day_of_week: int
+    start_time: str
+    end_time: str
+    room: Optional[str]
+    color_code: str
+    course_id: Optional[int]
+    is_active: bool
+    created_at: datetime
