@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from .database import engine, Base
-from .routers import courses, materials, tasks, settings, schedule
+from .routers import courses, materials, tasks, settings, schedule, ai_processing
 
 load_dotenv()
 
@@ -33,6 +33,7 @@ app.include_router(materials.router)
 app.include_router(tasks.router)
 app.include_router(settings.router)
 app.include_router(schedule.router)
+app.include_router(ai_processing.router)
 
 
 @app.get("/health")

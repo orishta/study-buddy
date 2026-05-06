@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, Plus, Star, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Plus, Sparkles, Star, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { Material } from "@/lib/types";
+import { SyllabusDialog } from "./SyllabusDialog";
 
 function StarRating({
   value,
@@ -135,6 +136,7 @@ export function MaterialTracker({ courseId }: { courseId: number }) {
   const qc = useQueryClient();
   const [addingTopic, setAddingTopic] = useState(false);
   const [newTopic, setNewTopic] = useState("");
+  const [syllabusOpen, setSyllabusOpen] = useState(false);
 
   const { data: materials = [], isLoading } = useQuery({
     queryKey: ["materials", courseId],
@@ -167,10 +169,18 @@ export function MaterialTracker({ courseId }: { courseId: number }) {
         <h3 className="text-sm font-semibold text-text-primary">
           Material tracker
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="text-xs text-text-muted">
             {materials.filter((m) => m.understanding_level >= 4).length}/{materials.length} solid
           </span>
+          <button
+            onClick={() => setSyllabusOpen(true)}
+            className="flex items-center gap-1 text-xs text-sage hover:text-sage-dark font-medium transition-base"
+            title="Auto-extract topics from syllabus using AI"
+          >
+            <Sparkles size={12} />
+            Import syllabus
+          </button>
           <button
             onClick={() => setAddingTopic(true)}
             className="flex items-center gap-1 text-xs text-text-muted hover:text-sage transition-base"
@@ -180,6 +190,12 @@ export function MaterialTracker({ courseId }: { courseId: number }) {
           </button>
         </div>
       </div>
+
+      <SyllabusDialog
+        courseId={courseId}
+        open={syllabusOpen}
+        onClose={() => setSyllabusOpen(false)}
+      />
 
       {/* Legend */}
       <div className="flex gap-4 px-4 py-2 border-b border-border bg-gray-50/50">
@@ -227,13 +243,20 @@ export function MaterialTracker({ courseId }: { courseId: number }) {
           </button>
         </form>
       ) : materials.length === 0 ? (
-        <div className="px-4 py-6 text-center">
-          <p className="text-sm text-text-muted mb-2">No topics yet</p>
+        <div className="px-4 py-8 text-center space-y-3">
+          <p className="text-sm text-text-muted">No topics yet</p>
+          <button
+            onClick={() => setSyllabusOpen(true)}
+            className="flex items-center gap-2 mx-auto rounded-xl bg-sage-light px-4 py-2 text-sm font-medium text-sage hover:bg-sage hover:text-white transition-base"
+          >
+            <Sparkles size={14} />
+            Import from syllabus
+          </button>
           <button
             onClick={() => setAddingTopic(true)}
-            className="text-sm text-sage hover:underline transition-base"
+            className="block mx-auto text-xs text-text-muted hover:text-sage transition-base"
           >
-            + Add your first topic
+            or add topics manually
           </button>
         </div>
       ) : null}

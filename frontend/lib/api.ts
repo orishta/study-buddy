@@ -80,6 +80,16 @@ export const api = {
     delete: (id: number) => request<void>(`/tasks/${id}`, { method: "DELETE" }),
   },
 
+  // ── AI ───────────────────────────────────────────────────────────────────────
+
+  ai: {
+    extractTopics: (courseId: number, text: string) =>
+      request<{ topics: string[] }>("/ai/extract-topics", {
+        method: "POST",
+        body: JSON.stringify({ course_id: courseId, text }),
+      }),
+  },
+
   // ── Schedule ─────────────────────────────────────────────────────────────────
 
   schedule: {
