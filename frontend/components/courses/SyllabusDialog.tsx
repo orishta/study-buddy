@@ -55,11 +55,18 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
       setError(null);
     },
     onError: (err: Error) => {
-      setError(err.message.includes("503")
-        ? "Ollama is not running. Start it with: ollama serve"
-        : err.message.includes("502")
-        ? "Could not extract topics. Try pasting cleaner text."
-        : "Something went wrong. Please try again.");
+      const msg = err.message;
+      if (msg.includes("503") || msg.toLowerCase().includes("ollama")) {
+        setError("Ollama is not running. Start it with: ollama serve");
+      } else if (msg.includes("502")) {
+        setError("Could not extract topics. Try pasting cleaner text.");
+      } else if (msg.includes("404")) {
+        setError("API endpoint not found — restart the backend (make backend).");
+      } else if (msg.toLowerCase().includes("failed to fetch") || msg.toLowerCase().includes("network")) {
+        setError("Cannot reach the backend. Is it running on port 8000?");
+      } else {
+        setError(`Error: ${msg}`);
+      }
     },
   });
 
