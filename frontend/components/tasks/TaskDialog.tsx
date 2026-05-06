@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { X, ChevronDown } from "lucide-react";
+import { X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
-import { format } from "date-fns";
 import { api } from "@/lib/api";
 import { useUI } from "@/lib/store";
 import { cn, PRIORITY_COLORS } from "@/lib/utils";
@@ -17,10 +16,19 @@ export function TaskDialog() {
   const { taskDialogOpen, taskDialogDefaults, closeTaskDialog } = useUI();
   const qc = useQueryClient();
 
+  const isEditMode = !!taskDialogDefaults?.taskId;
+  const contextCourseId = taskDialogDefaults?.courseId;
+
   const { data: courses = [] } = useQuery({
     queryKey: ["courses"],
     queryFn: api.courses.list,
     enabled: taskDialogOpen,
+  });
+
+  const { data: existingTask } = useQuery({
+    queryKey: ["tasks", taskDialogDefaults?.taskId],
+    queryFn: () => api.tasks.get(taskDialogDefaults!.taskId!),
+    enabled: taskDialogOpen && isEditMode,
   });
 
   const [title, setTitle] = useState("");
@@ -32,16 +40,25 @@ export function TaskDialog() {
   const [estimatedMin, setEstimatedMin] = useState("");
 
   useEffect(() => {
-    if (taskDialogOpen) {
+    if (!taskDialogOpen) return;
+    if (isEditMode && existingTask) {
+      setTitle(existingTask.title);
+      setDescription(existingTask.description ?? "");
+      setCourseId(existingTask.course_id ?? null);
+      setStatus(existingTask.status);
+      setPriority(existingTask.priority);
+      setDueDate(existingTask.due_date ? existingTask.due_date.slice(0, 10) : "");
+      setEstimatedMin(existingTask.estimated_minutes?.toString() ?? "");
+    } else if (!isEditMode) {
       setTitle("");
       setDescription("");
-      setCourseId(taskDialogDefaults?.courseId ?? null);
+      setCourseId(contextCourseId ?? null);
       setStatus((taskDialogDefaults?.status as TaskStatus) ?? "Todo");
       setPriority("Medium");
       setDueDate("");
       setEstimatedMin("");
     }
-  }, [taskDialogOpen, taskDialogDefaults]);
+  }, [taskDialogOpen, existingTask, isEditMode, contextCourseId, taskDialogDefaults?.status]);
 
   const createMutation = useMutation({
     mutationFn: api.tasks.create,
@@ -52,19 +69,42 @@ export function TaskDialog() {
     },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: Parameters<typeof api.tasks.update>[1] }) =>
+      api.tasks.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["tasks"] });
+      qc.invalidateQueries({ queryKey: ["courses"] });
+      closeTaskDialog();
+    },
+  });
+
+  const isPending = createMutation.isPending || updateMutation.isPending;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
-    createMutation.mutate({
+
+    const payload = {
       title: title.trim(),
       description: description.trim() || undefined,
       course_id: courseId,
       status,
       priority,
-      due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
-      estimated_minutes: estimatedMin ? parseInt(estimatedMin) : undefined,
-    });
+      due_date: dueDate ? new Date(dueDate).toISOString() : null,
+      estimated_minutes: estimatedMin ? parseInt(estimatedMin) : null,
+    };
+
+    if (isEditMode && taskDialogDefaults?.taskId) {
+      updateMutation.mutate({ id: taskDialogDefaults.taskId, data: payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   }
+
+  const contextCourse = !isEditMode && contextCourseId
+    ? courses.find((c) => c.id === contextCourseId)
+    : null;
 
   return (
     <AnimatePresence>
@@ -86,8 +126,23 @@ export function TaskDialog() {
             transition={{ duration: 0.15, ease: "easeOut" }}
             className="fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-surface shadow-modal border border-border p-6"
           >
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-semibold text-text-primary">New task</h2>
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h2 className="font-semibold text-text-primary">
+                  {isEditMode ? "Edit task" : "New task"}
+                </h2>
+                {contextCourse && (
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: contextCourse.color_code }}
+                    />
+                    <span className="text-xs text-text-muted">
+                      {contextCourse.emoji} {contextCourse.title}
+                    </span>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={closeTaskDialog}
                 className="p-1 rounded-lg text-text-muted hover:bg-gray-50 transition-base"
@@ -223,10 +278,12 @@ export function TaskDialog() {
                 </button>
                 <button
                   type="submit"
-                  disabled={!title.trim() || createMutation.isPending}
+                  disabled={!title.trim() || isPending}
                   className="flex-1 rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark disabled:opacity-50 transition-base"
                 >
-                  {createMutation.isPending ? "Adding..." : "Add task"}
+                  {isPending
+                    ? isEditMode ? "Saving..." : "Adding..."
+                    : isEditMode ? "Save changes" : "Add task"}
                 </button>
               </div>
             </form>

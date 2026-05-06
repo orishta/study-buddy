@@ -5,8 +5,12 @@ interface UIStore {
   toggleSidebar: () => void;
 
   taskDialogOpen: boolean;
-  taskDialogDefaults: { courseId?: number; status?: string } | null;
-  openTaskDialog: (defaults?: { courseId?: number; status?: string }) => void;
+  taskDialogDefaults: {
+    courseId?: number;
+    status?: string;
+    taskId?: number;   // set → edit mode
+  } | null;
+  openTaskDialog: (defaults?: { courseId?: number; status?: string; taskId?: number }) => void;
   closeTaskDialog: () => void;
 
   courseFormOpen: boolean;

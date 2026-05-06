@@ -1,6 +1,5 @@
 "use client";
 
-import { use } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { ArrowLeft, ExternalLink } from "lucide-react";
@@ -14,10 +13,9 @@ import { api } from "@/lib/api";
 export default function CourseDetailPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id } = use(params);
-  const courseId = parseInt(id);
+  const courseId = parseInt(params.id);
 
   const { data: course, isLoading } = useQuery({
     queryKey: ["courses", courseId],
@@ -45,7 +43,7 @@ export default function CourseDetailPage({
 
   return (
     <>
-      <TopBar title={`${course.emoji} ${course.title}`} />
+      <TopBar title={`${course.emoji} ${course.title}`} courseId={courseId} />
 
       <div className="flex-1 overflow-y-auto">
         {/* Course hero */}

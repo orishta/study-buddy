@@ -18,11 +18,12 @@ interface KanbanColumnProps {
   status: TaskStatus;
   tasks: Task[];
   courses: Course[];
+  courseId?: number;
   onComplete?: () => void;
   isOver?: boolean;
 }
 
-export function KanbanColumn({ status, tasks, courses, onComplete, isOver }: KanbanColumnProps) {
+export function KanbanColumn({ status, tasks, courses, courseId, onComplete, isOver }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: status });
   const { openTaskDialog } = useUI();
 
@@ -46,7 +47,7 @@ export function KanbanColumn({ status, tasks, courses, onComplete, isOver }: Kan
           </span>
         </div>
         <button
-          onClick={() => openTaskDialog({ status })}
+          onClick={() => openTaskDialog({ status, courseId })}
           className="p-1 rounded-lg text-text-muted hover:bg-white hover:text-sage transition-base"
           title={`Add task to ${COLUMN_LABELS[status]}`}
         >

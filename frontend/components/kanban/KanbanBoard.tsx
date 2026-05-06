@@ -148,6 +148,7 @@ export function KanbanBoard({ courseId }: { courseId?: number }) {
             status={status}
             tasks={getColumnTasks(status)}
             courses={courses}
+            courseId={courseId}
             onComplete={playComplete}
             isOver={overColumn === status}
           />

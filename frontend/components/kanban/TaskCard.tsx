@@ -90,7 +90,7 @@ export function TaskCard({ task, courses, onComplete, isDragOverlay }: TaskCardP
           {/* Content */}
           <div
             className="flex-1 min-w-0 cursor-pointer"
-            onClick={() => openTaskDialog({ courseId: task.course_id ?? undefined })}
+            onClick={() => openTaskDialog({ taskId: task.id })}
           >
             <p
               className={cn(
@@ -163,7 +163,7 @@ export function TaskCard({ task, courses, onComplete, isDragOverlay }: TaskCardP
       {/* Hover actions */}
       <div className="absolute right-2 top-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-base">
         <button
-          onClick={() => openTaskDialog({ courseId: task.course_id ?? undefined })}
+          onClick={() => openTaskDialog({ taskId: task.id })}
           className="p-1 rounded-md text-text-muted hover:bg-gray-50 hover:text-text-primary transition-base"
           title="Edit"
         >

@@ -3,7 +3,7 @@
 import { Plus } from "lucide-react";
 import { useUI } from "@/lib/store";
 
-export function TopBar({ title }: { title?: string }) {
+export function TopBar({ title, courseId }: { title?: string; courseId?: number }) {
   const { openTaskDialog } = useUI();
 
   return (
@@ -17,7 +17,7 @@ export function TopBar({ title }: { title?: string }) {
           Press <kbd className="font-mono font-semibold">N</kbd> to add a task
         </span>
         <button
-          onClick={() => openTaskDialog()}
+          onClick={() => openTaskDialog(courseId ? { courseId } : undefined)}
           className="flex items-center gap-1.5 rounded-lg bg-sage px-3 py-1.5 text-sm font-medium text-white hover:bg-sage-dark transition-base"
         >
           <Plus size={15} />
