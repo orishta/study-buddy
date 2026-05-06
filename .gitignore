@@ -1,0 +1,28 @@
+# Python
+backend/venv/
+backend/__pycache__/
+backend/app/__pycache__/
+backend/app/routers/__pycache__/
+backend/services/__pycache__/
+backend/*.db
+backend/.env
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Node / Next.js
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
+whatsapp-worker/node_modules/
+whatsapp-worker/.wwebjs_auth/
+whatsapp-worker/.wwebjs_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
+.env.production
