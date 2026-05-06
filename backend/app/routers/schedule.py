@@ -2,10 +2,23 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from ..database import get_db
-from ..models import ClassSchedule
+from ..models import ClassSchedule, Course
 from ..schemas import ClassSlotCreate, ClassSlotOut, ClassSlotUpdate
 
 router = APIRouter(prefix="/schedule", tags=["schedule"])
+
+
+def _get_or_create_course(db: Session, subject_name: str, color_code: str) -> int:
+    """Find existing course with same title or create one automatically."""
+    existing = db.query(Course).filter(
+        Course.title == subject_name, Course.is_active == True
+    ).first()
+    if existing:
+        return existing.id
+    course = Course(title=subject_name, color_code=color_code, emoji="📚")
+    db.add(course)
+    db.flush()
+    return course.id
 
 
 @router.get("", response_model=list[ClassSlotOut])
@@ -20,7 +33,11 @@ def list_slots(db: Session = Depends(get_db)):
 
 @router.post("", response_model=ClassSlotOut, status_code=201)
 def create_slot(payload: ClassSlotCreate, db: Session = Depends(get_db)):
-    slot = ClassSchedule(**payload.model_dump())
+    data = payload.model_dump()
+    # Auto-create a linked course if none provided
+    if not data.get("course_id"):
+        data["course_id"] = _get_or_create_course(db, data["subject_name"], data.get("color_code", "#6B7C5E"))
+    slot = ClassSchedule(**data)
     db.add(slot)
     db.commit()
     db.refresh(slot)
