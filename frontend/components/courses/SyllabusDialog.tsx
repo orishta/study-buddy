@@ -2,12 +2,13 @@
 
 import { useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, ArrowLeft, BookOpen, Loader2, Sparkles, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, FileText, Loader2, Sparkles, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 type Step = "input" | "preview";
+type InputMode = "pdf" | "text";
 
 interface SyllabusDialogProps {
   courseId: number;
@@ -20,17 +21,22 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<Step>("input");
+  const [mode, setMode] = useState<InputMode>("pdf");
   const [text, setText] = useState("");
+  const [pdfBase64, setPdfBase64] = useState<string | null>(null);
+  const [pdfName, setPdfName] = useState<string | null>(null);
   const [topics, setTopics] = useState<string[]>([]);
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
   function handleClose() {
     onClose();
-    // Reset after animation finishes
     setTimeout(() => {
       setStep("input");
+      setMode("pdf");
       setText("");
+      setPdfBase64(null);
+      setPdfName(null);
       setTopics([]);
       setSelected(new Set());
       setError(null);
@@ -40,14 +46,38 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => setText((ev.target?.result as string) ?? "");
-    reader.readAsText(file, "utf-8");
+
+    if (file.type === "application/pdf") {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const result = ev.target?.result as string;
+        // Strip "data:application/pdf;base64," prefix
+        setPdfBase64(result.split(",")[1]);
+        setPdfName(file.name);
+        setText("");
+        setMode("pdf");
+      };
+      reader.readAsDataURL(file);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setText((ev.target?.result as string) ?? "");
+        setPdfBase64(null);
+        setPdfName(null);
+        setMode("text");
+      };
+      reader.readAsText(file, "utf-8");
+    }
     e.target.value = "";
   }
 
+  const canExtract = mode === "pdf" ? !!pdfBase64 : !!text.trim();
+
   const extractMutation = useMutation({
-    mutationFn: () => api.ai.extractTopics(courseId, text),
+    mutationFn: () =>
+      api.ai.extractTopics(courseId, mode === "pdf"
+        ? { pdfBase64: pdfBase64! }
+        : { text }),
     onSuccess: (data) => {
       setTopics(data.topics);
       setSelected(new Set(data.topics.map((_, i) => i)));
@@ -56,13 +86,13 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
     },
     onError: (err: Error) => {
       const msg = err.message;
-      if (msg.includes("503") || msg.toLowerCase().includes("ollama")) {
-        setError("Ollama is not running. Start it with: ollama serve");
+      if (msg.includes("GEMINI_API_KEY") || msg.includes("503")) {
+        setError("Gemini API key is missing. Get a free key at aistudio.google.com/app/apikey and add GEMINI_API_KEY=... to your .env file, then restart the backend.");
       } else if (msg.includes("502")) {
-        setError("Could not extract topics. Try pasting cleaner text.");
+        setError("Could not extract topics. Try a different file or cleaner text.");
       } else if (msg.includes("404")) {
-        setError("API endpoint not found — restart the backend (make backend).");
-      } else if (msg.toLowerCase().includes("failed to fetch") || msg.toLowerCase().includes("network")) {
+        setError("Endpoint not found — restart the backend.");
+      } else if (msg.toLowerCase().includes("failed to fetch")) {
         setError("Cannot reach the backend. Is it running on port 8000?");
       } else {
         setError(`Error: ${msg}`);
@@ -76,8 +106,9 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
       for (const topic of chosen) {
         await api.materials.create(courseId, { topic_name: topic });
       }
-      // Persist the raw syllabus for future AI features
-      await api.courses.update(courseId, { syllabus_text: text });
+      if (mode === "text" && text.trim()) {
+        await api.courses.update(courseId, { syllabus_text: text });
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["materials", courseId] });
@@ -87,11 +118,9 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
   });
 
   function toggleAll() {
-    if (selected.size === topics.length) {
-      setSelected(new Set());
-    } else {
-      setSelected(new Set(topics.map((_, i) => i)));
-    }
+    setSelected(selected.size === topics.length
+      ? new Set()
+      : new Set(topics.map((_, i) => i)));
   }
 
   return (
@@ -125,56 +154,97 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
                     <ArrowLeft size={16} />
                   </button>
                 )}
-                <div className="flex items-center gap-2">
-                  <Sparkles size={16} className="text-sage" />
-                  <h2 className="font-semibold text-text-primary">
-                    {step === "input" ? "Import from syllabus" : "Review topics"}
-                  </h2>
-                </div>
+                <Sparkles size={16} className="text-sage" />
+                <h2 className="font-semibold text-text-primary">
+                  {step === "input" ? "Import from syllabus" : "Review topics"}
+                </h2>
               </div>
-              <button
-                onClick={handleClose}
-                className="p-1 rounded-lg text-text-muted hover:bg-gray-50 transition-base"
-              >
+              <button onClick={handleClose} className="p-1 rounded-lg text-text-muted hover:bg-gray-50 transition-base">
                 <X size={18} />
               </button>
             </div>
 
             <p className="text-xs text-text-muted mb-5">
               {step === "input"
-                ? "Paste your course syllabus and the AI will extract study topics automatically."
-                : `${topics.length} topics found — select which ones to add to your tracker.`}
+                ? "Upload a PDF or paste text — topics will be extracted automatically in the original language."
+                : `${topics.length} topics found — choose which to add to your tracker.`}
             </p>
 
-            {/* Step: input */}
+            {/* ── Input step ── */}
             {step === "input" && (
               <div className="space-y-3">
-                <textarea
-                  value={text}
-                  onChange={(e) => setText(e.target.value)}
-                  placeholder="Paste your syllabus here..."
-                  rows={8}
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-sage transition-base resize-none"
-                />
-
-                <div className="flex items-center gap-2">
+                {/* Mode tabs */}
+                <div className="flex rounded-lg border border-border overflow-hidden text-sm">
                   <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="flex items-center gap-1.5 text-xs text-text-muted border border-border rounded-lg px-3 py-1.5 hover:bg-gray-50 transition-base"
+                    onClick={() => setMode("pdf")}
+                    className={cn(
+                      "flex-1 py-2 font-medium transition-base",
+                      mode === "pdf" ? "bg-sage text-white" : "text-text-muted hover:bg-gray-50"
+                    )}
                   >
-                    <BookOpen size={12} />
-                    Upload .txt file
+                    Upload PDF
                   </button>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".txt,.md"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                  <span className="text-xs text-text-muted">or paste text above</span>
+                  <button
+                    onClick={() => setMode("text")}
+                    className={cn(
+                      "flex-1 py-2 font-medium transition-base border-l border-border",
+                      mode === "text" ? "bg-sage text-white" : "text-text-muted hover:bg-gray-50"
+                    )}
+                  >
+                    Paste text
+                  </button>
                 </div>
+
+                {/* PDF mode */}
+                {mode === "pdf" && (
+                  <div>
+                    {pdfBase64 ? (
+                      <div className="flex items-center gap-3 rounded-xl border-2 border-sage bg-sage-light px-4 py-3">
+                        <FileText size={20} className="text-sage shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-text-primary truncate">{pdfName}</p>
+                          <p className="text-xs text-text-muted">Ready to extract</p>
+                        </div>
+                        <button
+                          onClick={() => { setPdfBase64(null); setPdfName(null); }}
+                          className="text-text-muted hover:text-text-primary transition-base"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-full rounded-xl border-2 border-dashed border-border hover:border-sage hover:bg-sage-light/50 px-4 py-8 text-center transition-base group"
+                      >
+                        <FileText size={24} className="mx-auto mb-2 text-text-muted group-hover:text-sage transition-base" />
+                        <p className="text-sm font-medium text-text-muted group-hover:text-sage transition-base">
+                          Click to upload PDF
+                        </p>
+                        <p className="text-xs text-text-muted mt-1">or .txt / .md files</p>
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Text mode */}
+                {mode === "text" && (
+                  <textarea
+                    value={text}
+                    onChange={(e) => setText(e.target.value)}
+                    placeholder="Paste your syllabus here..."
+                    rows={8}
+                    className="w-full rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-sage transition-base resize-none"
+                  />
+                )}
+
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".pdf,.txt,.md"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
 
                 {error && (
                   <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
@@ -185,51 +255,38 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
 
                 <div className="flex gap-2 pt-1">
                   <button
-                    type="button"
                     onClick={handleClose}
                     className="flex-1 rounded-lg border border-border px-3 py-2 text-sm font-medium text-text-muted hover:bg-gray-50 transition-base"
                   >
                     Cancel
                   </button>
                   <button
-                    type="button"
                     onClick={() => extractMutation.mutate()}
-                    disabled={!text.trim() || extractMutation.isPending}
+                    disabled={!canExtract || extractMutation.isPending}
                     className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark disabled:opacity-50 transition-base"
                   >
                     {extractMutation.isPending ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        Extracting…
-                      </>
+                      <><Loader2 size={14} className="animate-spin" />Extracting…</>
                     ) : (
-                      <>
-                        <Sparkles size={14} />
-                        Extract topics
-                      </>
+                      <><Sparkles size={14} />Extract topics</>
                     )}
                   </button>
                 </div>
               </div>
             )}
 
-            {/* Step: preview */}
+            {/* ── Preview step ── */}
             {step === "preview" && (
               <div className="space-y-3">
-                {/* Select all toggle */}
                 <div className="flex items-center justify-between px-1">
                   <span className="text-xs text-text-muted">
                     {selected.size} of {topics.length} selected
                   </span>
-                  <button
-                    onClick={toggleAll}
-                    className="text-xs text-sage hover:underline transition-base"
-                  >
+                  <button onClick={toggleAll} className="text-xs text-sage hover:underline transition-base">
                     {selected.size === topics.length ? "Deselect all" : "Select all"}
                   </button>
                 </div>
 
-                {/* Topic list */}
                 <div className="max-h-64 overflow-y-auto rounded-xl border border-border divide-y divide-border">
                   {topics.map((topic, i) => (
                     <label
@@ -265,26 +322,19 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
 
                 <div className="flex gap-2 pt-1">
                   <button
-                    type="button"
                     onClick={handleClose}
                     className="flex-1 rounded-lg border border-border px-3 py-2 text-sm font-medium text-text-muted hover:bg-gray-50 transition-base"
                   >
                     Cancel
                   </button>
                   <button
-                    type="button"
                     onClick={() => addMutation.mutate()}
                     disabled={selected.size === 0 || addMutation.isPending}
                     className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark disabled:opacity-50 transition-base"
                   >
-                    {addMutation.isPending ? (
-                      <>
-                        <Loader2 size={14} className="animate-spin" />
-                        Adding…
-                      </>
-                    ) : (
-                      `Add ${selected.size} topic${selected.size !== 1 ? "s" : ""}`
-                    )}
+                    {addMutation.isPending
+                      ? <><Loader2 size={14} className="animate-spin" />Adding…</>
+                      : `Add ${selected.size} topic${selected.size !== 1 ? "s" : ""}`}
                   </button>
                 </div>
               </div>

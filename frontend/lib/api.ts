@@ -83,10 +83,14 @@ export const api = {
   // ── AI ───────────────────────────────────────────────────────────────────────
 
   ai: {
-    extractTopics: (courseId: number, text: string) =>
+    extractTopics: (courseId: number, data: { text?: string; pdfBase64?: string }) =>
       request<{ topics: string[] }>("/ai/extract-topics", {
         method: "POST",
-        body: JSON.stringify({ course_id: courseId, text }),
+        body: JSON.stringify({
+          course_id: courseId,
+          text: data.text || undefined,
+          pdf_base64: data.pdfBase64 || undefined,
+        }),
       }),
   },
 
