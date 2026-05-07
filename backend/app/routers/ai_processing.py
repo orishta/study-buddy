@@ -19,8 +19,8 @@ class ExtractedTopicsOut(BaseModel):
     topics: list[str]
 
 
-def _parse_topics(raw: str) -> list[str]:
-    """Extract a JSON array of strings from potentially noisy LLM output."""
+def _parse_line_numbers(raw: str, total_lines: int) -> list[int]:
+    """Extract a JSON array of integers from LLM output, clamped to valid line range."""
     raw = raw.strip()
     start = raw.find("[")
     end = raw.rfind("]") + 1
@@ -28,9 +28,13 @@ def _parse_topics(raw: str) -> list[str]:
         return []
     try:
         parsed = json.loads(raw[start:end])
-        return [str(t).strip() for t in parsed if str(t).strip()]
-    except json.JSONDecodeError:
+        return [int(n) for n in parsed if str(n).strip().isdigit() and 1 <= int(n) <= total_lines]
+    except (json.JSONDecodeError, ValueError):
         return []
+
+
+def _prepare_lines(text: str) -> list[str]:
+    return [line.strip() for line in text.splitlines() if line.strip()]
 
 
 @router.post("/extract-topics", response_model=ExtractedTopicsOut)
@@ -44,16 +48,21 @@ async def extract_topics(payload: SyllabusIn, db: Session = Depends(get_db)):
     if not payload.text.strip():
         raise HTTPException(status_code=422, detail="Syllabus text is empty")
 
+    lines = _prepare_lines(payload.text)
+    if not lines:
+        raise HTTPException(status_code=422, detail="Syllabus text is empty")
+
+    numbered = "\n".join(f"{i + 1}. {line}" for i, line in enumerate(lines))
+
+    # Ask model for line numbers only — avoids any Unicode reproduction issues
     prompt = (
-        "Read the following course syllabus and extract all the topics, units, or chapters "
-        "that a student needs to study.\n"
-        "Rules:\n"
-        "- Return ONLY a JSON array of short topic name strings.\n"
-        "- No markdown, no explanation, no code blocks — just the raw JSON array.\n"
-        "- Keep each topic name concise (2–6 words).\n"
-        "- Include every distinct topic you find.\n\n"
-        "Example output: [\"Introduction\", \"Data Structures\", \"Sorting Algorithms\"]\n\n"
-        f"Syllabus:\n{payload.text}"
+        "Below is a numbered course syllabus. "
+        "Identify which line numbers represent a topic, chapter, unit, or subject heading "
+        "that a student should study.\n"
+        "Return ONLY a JSON array of integers (the line numbers). "
+        "No text, no explanation, no markdown — just the array.\n"
+        "Example: [1, 3, 5, 8]\n\n"
+        f"Syllabus:\n{numbered}"
     )
 
     try:
@@ -64,11 +73,13 @@ async def extract_topics(payload: SyllabusIn, db: Session = Depends(get_db)):
             detail=f"Ollama is not reachable. Make sure it is running: {e}",
         )
 
-    topics = _parse_topics(raw)
-    if not topics:
+    indices = _parse_line_numbers(raw, len(lines))
+    if not indices:
         raise HTTPException(
             status_code=502,
-            detail="Could not extract topics from the syllabus. Try pasting cleaner text.",
+            detail="Could not identify topics in the syllabus. Try pasting cleaner text.",
         )
 
+    # Pull the original text for those lines — language is preserved perfectly
+    topics = [lines[i - 1] for i in sorted(set(indices))]
     return ExtractedTopicsOut(topics=topics)

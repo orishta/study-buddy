@@ -42,6 +42,7 @@ class CourseUpdate(BaseModel):
     color_code: Optional[str] = None
     emoji: Optional[str] = None
     notebooklm_link: Optional[str] = None
+    syllabus_text: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -53,6 +54,7 @@ class CourseOut(BaseModel):
     color_code: str
     emoji: str
     notebooklm_link: Optional[str]
+    syllabus_text: Optional[str] = None
     is_active: bool
     created_at: datetime
 

@@ -76,6 +76,8 @@ export function SyllabusDialog({ courseId, open, onClose }: SyllabusDialogProps)
       for (const topic of chosen) {
         await api.materials.create(courseId, { topic_name: topic });
       }
+      // Persist the raw syllabus for future AI features
+      await api.courses.update(courseId, { syllabus_text: text });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["materials", courseId] });

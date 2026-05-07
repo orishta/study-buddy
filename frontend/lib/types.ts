@@ -18,6 +18,7 @@ export interface Course {
   color_code: string;
   emoji: string;
   notebooklm_link: string | null;
+  syllabus_text?: string | null;
   is_active: boolean;
   created_at: string;
   todo_count: number;
@@ -64,6 +65,7 @@ export interface CourseUpdate {
   color_code?: string;
   emoji?: string;
   notebooklm_link?: string | null;
+  syllabus_text?: string | null;
   is_active?: boolean;
 }
 

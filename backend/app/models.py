@@ -29,6 +29,7 @@ class Course(Base):
     color_code = Column(String, default="#6B7C5E")
     emoji = Column(String, default="📚")
     notebooklm_link = Column(String, nullable=True)
+    syllabus_text = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

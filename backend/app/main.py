@@ -2,6 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from dotenv import load_dotenv
 
 from .database import engine, Base
@@ -13,7 +14,22 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    # Safe incremental migrations for columns added after initial DB creation
+    _run_migrations()
     yield
+
+
+def _run_migrations():
+    migrations = [
+        "ALTER TABLE courses ADD COLUMN syllabus_text TEXT",
+    ]
+    with engine.connect() as conn:
+        for sql in migrations:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass  # column already exists
 
 
 app = FastAPI(title="StudyBuddy API", version="1.0.0", lifespan=lifespan)
