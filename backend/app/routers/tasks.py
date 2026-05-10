@@ -1,3 +1,4 @@
+"""Task CRUD, status updates, and drag-and-drop reorder."""
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 def list_tasks(
     status: Optional[str] = Query(None),
     course_id: Optional[int] = Query(None),
-    parent_id: Optional[int] = Query(None, description="Pass 'none' to get top-level tasks only"),
+    parent_id: Optional[int] = Query(None, description="Omit to get top-level tasks; provide an ID to get that parent's subtasks"),
     db: Session = Depends(get_db),
 ):
     q = db.query(Task)
@@ -87,14 +88,26 @@ def update_task_status(task_id: int, payload: TaskStatusUpdate, db: Session = De
     return task
 
 
+_VALID_STATUSES = {"Todo", "In Progress", "Done"}
+
+
 @router.patch("/reorder", response_model=list[TaskOut])
 def reorder_tasks(payload: TaskReorder, db: Session = Depends(get_db)):
+    for item in payload.tasks:
+        if item.status not in _VALID_STATUSES:
+            raise HTTPException(status_code=422, detail=f"Invalid status: {item.status!r}")
+
     updated = []
     for item in payload.tasks:
         task = db.query(Task).filter(Task.id == item.id).first()
         if task:
+            prev_status = task.status
             task.position = item.position
             task.status = item.status
+            if item.status == "Done" and prev_status != "Done":
+                task.completed_at = datetime.utcnow()
+            elif item.status != "Done" and prev_status == "Done":
+                task.completed_at = None
             updated.append(task)
     db.commit()
     for task in updated:

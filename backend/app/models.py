@@ -1,3 +1,4 @@
+"""SQLAlchemy ORM models. Day-of-week convention: 0=Sunday … 5=Friday."""
 from datetime import datetime
 from typing import Optional
 from sqlalchemy import (
@@ -15,10 +16,15 @@ class UserSettings(Base):
     display_name = Column(String, default="Student")
     learning_style_profile = Column(JSON, nullable=True)
     whatsapp_number = Column(String, nullable=True)
+    telegram_bot_token = Column(String, nullable=True)
+    telegram_chat_id = Column(String, nullable=True)
     daily_summary_time = Column(String, default="08:00")
     peak_focus_start = Column(String, default="09:00")
     peak_focus_end = Column(String, default="13:00")
     pomodoro_duration = Column(Integer, default=25)
+    gmail_client_id = Column(String, nullable=True)
+    gmail_client_secret = Column(String, nullable=True)
+    gmail_refresh_token = Column(String, nullable=True)
 
 
 class Course(Base):

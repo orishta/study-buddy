@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import type { TaskStatus } from "@/lib/types";
 
 interface UIStore {
   sidebarCollapsed: boolean;
@@ -7,10 +8,10 @@ interface UIStore {
   taskDialogOpen: boolean;
   taskDialogDefaults: {
     courseId?: number;
-    status?: string;
+    status?: TaskStatus;
     taskId?: number;   // set → edit mode
   } | null;
-  openTaskDialog: (defaults?: { courseId?: number; status?: string; taskId?: number }) => void;
+  openTaskDialog: (defaults?: { courseId?: number; status?: TaskStatus; taskId?: number }) => void;
   closeTaskDialog: () => void;
 
   courseFormOpen: boolean;

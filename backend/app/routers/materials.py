@@ -1,3 +1,4 @@
+"""Material tracking per course — understanding level and notes."""
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -34,7 +35,7 @@ def update_material(material_id: int, payload: MaterialUpdate, db: Session = Dep
     material = db.query(MaterialTracking).filter(MaterialTracking.id == material_id).first()
     if not material:
         raise HTTPException(status_code=404, detail="Material not found")
-    updates = payload.model_dump(exclude_none=True)
+    updates = payload.model_dump(exclude_unset=True)
     if "understanding_level" in updates and payload.understanding_level is not None:
         material.last_reviewed = datetime.utcnow()
     for field, value in updates.items():

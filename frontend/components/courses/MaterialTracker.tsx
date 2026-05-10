@@ -111,7 +111,7 @@ function MaterialRow({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             onBlur={() => {
-              updateMutation.mutate({ notes: notes.trim() || undefined });
+              updateMutation.mutate({ notes: notes.trim() });
               setEditingNotes(false);
             }}
             rows={2}

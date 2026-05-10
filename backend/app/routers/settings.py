@@ -1,3 +1,4 @@
+"""User settings singleton — GET and PUT /settings."""
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 

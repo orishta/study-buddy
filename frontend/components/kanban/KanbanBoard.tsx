@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -28,7 +28,6 @@ export function KanbanBoard({ courseId }: { courseId?: number }) {
   const [overColumn, setOverColumn] = useState<TaskStatus | null>(null);
 
   const [playComplete] = useSound("/sounds/complete.mp3", { volume: 0.6 });
-  const pendingCompleteRef = useRef(false);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ["tasks", courseId],
@@ -58,7 +57,6 @@ export function KanbanBoard({ courseId }: { courseId?: number }) {
   function handleDragStart({ active }: DragStartEvent) {
     const task = tasks.find((t) => t.id === active.id);
     setActiveTask(task ?? null);
-    pendingCompleteRef.current = false;
   }
 
   function handleDragOver({ active, over }: DragOverEvent) {

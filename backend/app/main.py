@@ -1,5 +1,6 @@
-import os
+"""StudyBuddy FastAPI application — entry point, middleware, and router registration."""
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -14,14 +15,23 @@ load_dotenv()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
-    # Safe incremental migrations for columns added after initial DB creation
     _run_migrations()
+    from services.scheduler import start_scheduler
+    bg_tasks = start_scheduler()
     yield
+    for t in bg_tasks:
+        t.cancel()
 
 
 def _run_migrations():
+    """Safe incremental ALTER TABLE migrations — runs on every startup, idempotent."""
     migrations = [
         "ALTER TABLE courses ADD COLUMN syllabus_text TEXT",
+        "ALTER TABLE user_settings ADD COLUMN telegram_chat_id TEXT",
+        "ALTER TABLE user_settings ADD COLUMN telegram_bot_token TEXT",
+        "ALTER TABLE user_settings ADD COLUMN gmail_client_id TEXT",
+        "ALTER TABLE user_settings ADD COLUMN gmail_client_secret TEXT",
+        "ALTER TABLE user_settings ADD COLUMN gmail_refresh_token TEXT",
     ]
     with engine.connect() as conn:
         for sql in migrations:
@@ -34,12 +44,9 @@ def _run_migrations():
 
 app = FastAPI(title="StudyBuddy API", version="1.0.0", lifespan=lifespan)
 
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins,
-    allow_credentials=True,
+    allow_origins=["*"],   # local-only app — no cookies or auth headers
     allow_methods=["*"],
     allow_headers=["*"],
 )

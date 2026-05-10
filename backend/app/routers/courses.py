@@ -1,4 +1,6 @@
+"""Course CRUD endpoints with per-course task-count aggregation."""
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -8,24 +10,35 @@ from ..schemas import CourseCreate, CourseOut, CourseUpdate, CourseWithStats
 router = APIRouter(prefix="/courses", tags=["courses"])
 
 
+def _task_counts(db: Session, course_ids: list[int]) -> dict[int, dict[str, int]]:
+    """Return {course_id: {status: count}} in a single aggregate query."""
+    rows = (
+        db.query(Task.course_id, Task.status, func.count(Task.id).label("n"))
+        .filter(Task.course_id.in_(course_ids), Task.parent_task_id.is_(None))
+        .group_by(Task.course_id, Task.status)
+        .all()
+    )
+    counts: dict[int, dict[str, int]] = {}
+    for cid, status, n in rows:
+        counts.setdefault(cid, {})[status] = n
+    return counts
+
+
 @router.get("", response_model=list[CourseWithStats])
 def list_courses(db: Session = Depends(get_db)):
     courses = db.query(Course).filter(Course.is_active == True).order_by(Course.created_at).all()
+    if not courses:
+        return []
+    counts = _task_counts(db, [c.id for c in courses])
     result = []
     for course in courses:
-        tasks = db.query(Task).filter(
-            Task.course_id == course.id,
-            Task.parent_task_id == None,
-        ).all()
-        todo = sum(1 for t in tasks if t.status == "Todo")
-        in_progress = sum(1 for t in tasks if t.status == "In Progress")
-        done = sum(1 for t in tasks if t.status == "Done")
+        c = counts.get(course.id, {})
         result.append(CourseWithStats(
             **CourseOut.model_validate(course).model_dump(),
-            todo_count=todo,
-            in_progress_count=in_progress,
-            done_count=done,
-            total_count=len(tasks),
+            todo_count=c.get("Todo", 0),
+            in_progress_count=c.get("In Progress", 0),
+            done_count=c.get("Done", 0),
+            total_count=sum(c.values()),
         ))
     return result
 
@@ -44,19 +57,13 @@ def get_course(course_id: int, db: Session = Depends(get_db)):
     course = db.query(Course).filter(Course.id == course_id, Course.is_active == True).first()
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
-    tasks = db.query(Task).filter(
-        Task.course_id == course_id,
-        Task.parent_task_id == None,
-    ).all()
-    todo = sum(1 for t in tasks if t.status == "Todo")
-    in_progress = sum(1 for t in tasks if t.status == "In Progress")
-    done = sum(1 for t in tasks if t.status == "Done")
+    c = _task_counts(db, [course_id]).get(course_id, {})
     return CourseWithStats(
         **CourseOut.model_validate(course).model_dump(),
-        todo_count=todo,
-        in_progress_count=in_progress,
-        done_count=done,
-        total_count=len(tasks),
+        todo_count=c.get("Todo", 0),
+        in_progress_count=c.get("In Progress", 0),
+        done_count=c.get("Done", 0),
+        total_count=sum(c.values()),
     )
 
 

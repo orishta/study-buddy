@@ -6,10 +6,25 @@ export interface Settings {
   display_name: string;
   learning_style_profile: unknown | null;
   whatsapp_number: string | null;
+  telegram_bot_token: string | null;
+  telegram_chat_id: string | null;
   daily_summary_time: string;
   peak_focus_start: string;
   peak_focus_end: string;
   pomodoro_duration: number;
+  gmail_client_id: string | null;
+  gmail_client_secret: string | null;
+  gmail_refresh_token: string | null;
+}
+
+export interface SlotPreview {
+  subject_name: string;
+  day_of_week: number;
+  start_time: string;
+  end_time: string;
+  instructor: string | null;
+  room: string | null;
+  color_code: string;
 }
 
 export interface Course {

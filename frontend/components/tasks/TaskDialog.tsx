@@ -53,7 +53,7 @@ export function TaskDialog() {
       setTitle("");
       setDescription("");
       setCourseId(contextCourseId ?? null);
-      setStatus((taskDialogDefaults?.status as TaskStatus) ?? "Todo");
+      setStatus(taskDialogDefaults?.status ?? "Todo");
       setPriority("Medium");
       setDueDate("");
       setEstimatedMin("");
@@ -91,7 +91,7 @@ export function TaskDialog() {
       course_id: courseId,
       status,
       priority,
-      due_date: dueDate ? new Date(dueDate).toISOString() : null,
+      due_date: dueDate || null,
       estimated_minutes: estimatedMin ? parseInt(estimatedMin) : null,
     };
 

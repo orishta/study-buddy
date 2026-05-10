@@ -1,3 +1,4 @@
+"""Pydantic v2 request/response schemas for all API resources."""
 from datetime import datetime
 from typing import Any, Optional
 from pydantic import BaseModel, ConfigDict
@@ -9,10 +10,15 @@ class SettingsUpdate(BaseModel):
     display_name: Optional[str] = None
     learning_style_profile: Optional[Any] = None
     whatsapp_number: Optional[str] = None
+    telegram_bot_token: Optional[str] = None
+    telegram_chat_id: Optional[str] = None
     daily_summary_time: Optional[str] = None
     peak_focus_start: Optional[str] = None
     peak_focus_end: Optional[str] = None
     pomodoro_duration: Optional[int] = None
+    gmail_client_id: Optional[str] = None
+    gmail_client_secret: Optional[str] = None
+    gmail_refresh_token: Optional[str] = None
 
 
 class SettingsOut(BaseModel):
@@ -22,10 +28,15 @@ class SettingsOut(BaseModel):
     display_name: str
     learning_style_profile: Optional[Any]
     whatsapp_number: Optional[str]
+    telegram_bot_token: Optional[str]
+    telegram_chat_id: Optional[str]
     daily_summary_time: str
     peak_focus_start: str
     peak_focus_end: str
     pomodoro_duration: int
+    gmail_client_id: Optional[str] = None
+    gmail_client_secret: Optional[str] = None
+    gmail_refresh_token: Optional[str] = None
 
 
 # ── Courses ───────────────────────────────────────────────────────────────────

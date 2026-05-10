@@ -4,7 +4,6 @@ import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Circle, Clock, GripVertical, Pencil, Trash2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { useUI } from "@/lib/store";
 import { api } from "@/lib/api";
 import { cn, formatRelativeDate, PRIORITY_COLORS } from "@/lib/utils";
@@ -37,10 +36,33 @@ export function TaskCard({ task, courses, onComplete, isDragOverlay }: TaskCardP
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tasks"] }),
   });
 
+  function playDoneChime() {
+    try {
+      const ctx = new AudioContext();
+      const now = ctx.currentTime;
+      [523, 659, 784].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, now + i * 0.08);
+        gain.gain.linearRampToValueAtTime(0.18, now + i * 0.08 + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.55);
+        osc.start(now + i * 0.08);
+        osc.stop(now + i * 0.08 + 0.6);
+      });
+    } catch {}
+  }
+
   function toggleDone() {
     const next = task.status === "Done" ? "Todo" : "Done";
     statusMutation.mutate(next);
-    if (next === "Done" && onComplete) onComplete();
+    if (next === "Done") {
+      playDoneChime();
+      if (onComplete) onComplete();
+    }
   }
 
   const style = {
