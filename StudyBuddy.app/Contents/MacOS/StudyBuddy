@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Resolve the repo root: .app is inside the repo, so walk up two levels
+# StudyBuddy.app/Contents/MacOS/StudyBuddy → repo root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+cd "$REPO_DIR"
+
+# Open a Terminal window that runs the servers and stays open on error
+osascript -e "
+tell application \"Terminal\"
+    activate
+    do script \"cd '$REPO_DIR' && make dev; echo; echo '--- StudyBuddy stopped. Close this window to exit. ---'; exec \$SHELL\"
+end tell
+"
+
+# Give servers 6 seconds to boot, then open the browser
+sleep 6
+open "http://localhost:3000"

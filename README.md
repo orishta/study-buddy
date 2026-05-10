@@ -99,7 +99,12 @@ make dev                      # backend :8000 + frontend :3000
 
 Then open [http://localhost:3000](http://localhost:3000).
 
-**Or** double-click `launch.command` (macOS) / run `./start.sh` (Linux) — opens the browser automatically after servers start.
+**One-click options:**
+- **macOS** — double-click `StudyBuddy.app` (add to Dock or Applications for easy access), or double-click `launch.command`
+- **Linux** — run `./start.sh`
+- **Windows** — double-click `launch.bat`
+
+> First run on macOS: right-click `StudyBuddy.app` → Open (bypasses Gatekeeper). After that, double-click works freely.
 
 ### Windows
 
@@ -158,9 +163,11 @@ All configuration lives in `.env` (copy from `.env.example`). The app runs witho
 | Command | What it does |
 |---------|-------------|
 | `make setup` | Install Python venv + npm deps |
-| `make dev` | Run backend + frontend concurrently |
-| `make backend` | Backend only (port 8000) |
-| `make frontend` | Frontend only (port 3000) |
+| `make dev` | Run backend + frontend in dev mode (hot-reload) |
+| `make prod` | Build Next.js and run both servers in production mode (~50% less RAM) |
+| `make stop` | Kill any running servers on ports 8000 and 3000 |
+| `make backend` | Backend only (port 8000, dev mode) |
+| `make frontend` | Frontend only (port 3000, dev mode) |
 | `make db-reset` | Wipe the SQLite database and restart fresh |
 
 ---
