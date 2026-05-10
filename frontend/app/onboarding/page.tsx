@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle, BookOpen, CheckCircle2, ExternalLink, FileSpreadsheet,
-  Loader2, Upload,
+  Loader2, Upload, Link as LinkIcon,
 } from "lucide-react";
 import QRCode from "qrcode";
 import { api } from "@/lib/api";
@@ -178,24 +178,50 @@ const FORMAT_EXAMPLE = `subject_name,day_of_week,start_time,end_time,room
 אלגוריתמים,1,08:15,11:45,וסטון 007
 מבוא לתכנות,שלישי,10:00,12:00,101`;
 
+type ScheduleMode = "url" | "file";
+
 function StepSchedule({ onNext, onSkip }: { onNext: () => void; onSkip: () => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mode, setMode] = useState<ScheduleMode>("url");
   const [file, setFile] = useState<File | null>(null);
+  const [url, setUrl] = useState("");
   const [imported, setImported] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const importMutation = useMutation({
+  function handleError(err: Error) {
+    try {
+      const body = err.message.replace(/^API \d+: /, "");
+      setError(JSON.parse(body).detail ?? err.message);
+    } catch {
+      setError(err.message);
+    }
+  }
+
+  const urlMutation = useMutation({
+    mutationFn: async () => {
+      const previews = await api.schedule.previewUrl(url.trim());
+      // Bulk-create all previewed slots
+      return api.schedule.bulkCreate(previews.map((s) => ({
+        subject_name: s.subject_name,
+        day_of_week: s.day_of_week,
+        start_time: s.start_time,
+        end_time: s.end_time,
+        instructor: s.instructor ?? undefined,
+        room: s.room ?? undefined,
+        color_code: s.color_code,
+      })));
+    },
+    onSuccess: (slots) => { setImported(slots.length); setError(null); },
+    onError: handleError,
+  });
+
+  const fileMutation = useMutation({
     mutationFn: () => api.schedule.import(file!),
     onSuccess: (slots) => { setImported(slots.length); setError(null); },
-    onError: (err: Error) => {
-      try {
-        const body = err.message.replace(/^API \d+: /, "");
-        setError(JSON.parse(body).detail ?? err.message);
-      } catch {
-        setError(err.message);
-      }
-    },
+    onError: handleError,
   });
+
+  const isPending = urlMutation.isPending || fileMutation.isPending;
 
   return (
     <motion.div
@@ -208,59 +234,94 @@ function StepSchedule({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
       <div className="text-center space-y-1">
         <h2 className="text-xl font-semibold text-text-primary">הוסף את לוח הזמנים שלך</h2>
         <p className="text-sm text-text-muted">
-          העלה קובץ CSV או Excel עם שיעוריך — כל שורה הופכת לשיעור בתצוגת השבוע.
+          ייבא ישירות מהמערכת של הקורסים שלך, או העלה CSV/Excel.
         </p>
       </div>
 
       <div className="rounded-2xl border border-border bg-surface shadow-card p-6 space-y-4">
-        {/* Format hint */}
-        <div className="rounded-lg border border-border bg-background p-3">
-          <p className="text-[11px] font-medium text-text-muted mb-1.5">עמודות נדרשות:</p>
-          <pre className="text-[10px] font-mono text-text-primary overflow-x-auto whitespace-pre">{FORMAT_EXAMPLE}</pre>
-          <p className="text-[10px] text-text-muted mt-1.5">
-            יום: מספר 0–5 (0=ראשון) או שם כגון &quot;ראשון&quot; / &quot;Sunday&quot;
-          </p>
+        {/* Mode tabs */}
+        <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+          {(["url", "file"] as const).map((m) => (
+            <button
+              key={m}
+              type="button"
+              onClick={() => { setMode(m); setError(null); setImported(null); }}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-1.5 py-2 font-medium transition-base",
+                mode === m ? "bg-sage text-white" : "bg-background text-text-muted hover:bg-gray-50"
+              )}
+            >
+              {m === "url" ? <><LinkIcon size={13} />קישור iCal</> : <><Upload size={13} />CSV / Excel</>}
+            </button>
+          ))}
         </div>
 
-        {/* File zone */}
         {imported !== null ? (
           <div className="flex items-center gap-3 rounded-xl border-2 border-sage bg-sage-light px-4 py-3">
             <CheckCircle2 size={20} className="text-sage shrink-0" />
-            <p className="text-sm font-medium text-text-primary">
-              {imported} שיעורים יובאו בהצלחה!
-            </p>
+            <p className="text-sm font-medium text-text-primary">{imported} שיעורים יובאו בהצלחה!</p>
           </div>
-        ) : file ? (
-          <div className="flex items-center gap-3 rounded-xl border-2 border-sage bg-sage-light px-4 py-3">
-            <FileSpreadsheet size={20} className="text-sage shrink-0" />
-            <p className="flex-1 text-sm font-medium text-text-primary truncate">{file.name}</p>
-            <button onClick={() => setFile(null)} className="text-text-muted hover:text-text-primary transition-base">
-              ✕
+        ) : mode === "url" ? (
+          <div className="space-y-3">
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800 leading-relaxed">
+              <strong>MTA / יד-עון:</strong> היכנס למערכת, לחץ &ldquo;Google Calendar&rdquo; ← העתק את הקישור (מתחיל ב-webcal:// או https://).
+            </div>
+            <input
+              type="url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="https://mtamn.mta.ac.il/…Google_Token=…"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-sage transition-base"
+            />
+            <button
+              onClick={() => urlMutation.mutate()}
+              disabled={!url.trim() || isPending}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark disabled:opacity-50 transition-base"
+            >
+              {isPending ? <><Loader2 size={13} className="animate-spin" />טוען…</> : "טען יומן →"}
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full rounded-xl border-2 border-dashed border-border hover:border-sage hover:bg-sage-light/50 px-4 py-6 text-center transition-base group"
-          >
-            <Upload size={22} className="mx-auto mb-2 text-text-muted group-hover:text-sage transition-base" />
-            <p className="text-sm text-text-muted group-hover:text-sage transition-base">
-              בחר קובץ CSV או Excel
-            </p>
-          </button>
+          <div className="space-y-3">
+            <div className="rounded-lg border border-border bg-background p-3">
+              <p className="text-[11px] font-medium text-text-muted mb-1.5">עמודות נדרשות:</p>
+              <pre className="text-[10px] font-mono text-text-primary overflow-x-auto whitespace-pre">{FORMAT_EXAMPLE}</pre>
+            </div>
+            {file ? (
+              <div className="flex items-center gap-3 rounded-xl border-2 border-sage bg-sage-light px-4 py-3">
+                <FileSpreadsheet size={20} className="text-sage shrink-0" />
+                <p className="flex-1 text-sm font-medium text-text-primary truncate">{file.name}</p>
+                <button onClick={() => setFile(null)} className="text-text-muted hover:text-text-primary transition-base">✕</button>
+              </div>
+            ) : (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full rounded-xl border-2 border-dashed border-border hover:border-sage hover:bg-sage-light/50 px-4 py-6 text-center transition-base group"
+              >
+                <Upload size={22} className="mx-auto mb-2 text-text-muted group-hover:text-sage transition-base" />
+                <p className="text-sm text-text-muted group-hover:text-sage transition-base">בחר קובץ CSV או Excel</p>
+              </button>
+            )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) { setFile(f); setError(null); }
+                e.target.value = "";
+              }}
+            />
+            <button
+              onClick={() => fileMutation.mutate()}
+              disabled={!file || isPending}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark disabled:opacity-50 transition-base"
+            >
+              {isPending ? <><Loader2 size={13} className="animate-spin" />מייבא…</> : <><Upload size={13} />יבא</>}
+            </button>
+          </div>
         )}
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".csv,.xlsx,.xls"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) { setFile(f); setError(null); setImported(null); }
-            e.target.value = "";
-          }}
-        />
 
         {error && (
           <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2">
@@ -269,27 +330,14 @@ function StepSchedule({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
           </div>
         )}
 
-        <div className="flex gap-2">
-          {imported === null && (
-            <button
-              onClick={() => importMutation.mutate()}
-              disabled={!file || importMutation.isPending}
-              className="flex-1 flex items-center justify-center gap-2 rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark disabled:opacity-50 transition-base"
-            >
-              {importMutation.isPending
-                ? <><Loader2 size={13} className="animate-spin" />מייבא…</>
-                : <><Upload size={13} />יבא</>}
-            </button>
-          )}
-          {imported !== null && (
-            <button
-              onClick={onNext}
-              className="flex-1 rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark transition-base"
-            >
-              המשך →
-            </button>
-          )}
-        </div>
+        {imported !== null && (
+          <button
+            onClick={onNext}
+            className="w-full rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark transition-base"
+          >
+            המשך →
+          </button>
+        )}
 
         <button
           onClick={onSkip}
@@ -306,7 +354,7 @@ function StepSchedule({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
 
 function StepTelegram({ onComplete }: { onComplete: () => void }) {
   const [botToken, setBotToken] = useState("");
-  const [tokenSaved, setTokenSaved] = useState(false);
+  const [tokenSaved, setTokenSaved] = useState(false);  // true once backend confirms save
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [deepLink, setDeepLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -377,16 +425,25 @@ function StepTelegram({ onComplete }: { onComplete: () => void }) {
           </div>
         ) : (
           <>
-            {/* Step 1: paste token */}
-            <div>
-              <p className="text-xs font-medium text-text-muted mb-1.5">
-                1. צור בוט ב-<strong>@BotFather</strong> והדבק את הטוקן:
+            {/* Step 1: create bot + paste token */}
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-text-muted">
+                1. פתח Telegram → חפש{" "}
+                <a
+                  href="https://t.me/BotFather"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sage underline"
+                >
+                  @BotFather
+                </a>
+                {" "}→ שלח <code className="font-mono bg-surface border border-border rounded px-1">/newbot</code> → עקוב אחרי ההוראות → קבל טוקן.
               </p>
               <div className="flex gap-2">
                 <input
                   type="password"
                   value={botToken}
-                  onChange={(e) => setBotToken(e.target.value)}
+                  onChange={(e) => { setBotToken(e.target.value); setTokenSaved(false); }}
                   placeholder="1234567890:AAF..."
                   className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-sage transition-base"
                 />
@@ -396,20 +453,25 @@ function StepTelegram({ onComplete }: { onComplete: () => void }) {
                   disabled={!botToken.trim() || saveTokenMutation.isPending}
                   className="rounded-lg border border-sage px-3 py-2 text-sm font-medium text-sage hover:bg-sage-light disabled:opacity-50 transition-base"
                 >
-                  {saveTokenMutation.isPending ? <Loader2 size={13} className="animate-spin" /> : tokenSaved ? "✓" : "שמור"}
+                  {saveTokenMutation.isPending
+                    ? <Loader2 size={13} className="animate-spin" />
+                    : tokenSaved ? "✓ נשמר" : "שמור"}
                 </button>
               </div>
             </div>
 
-            {/* Step 2: scan QR */}
+            {/* Step 2: scan QR — only enabled after token is saved */}
             <div>
-              <p className="text-xs font-medium text-text-muted mb-2">
-                2. לחץ לקבל QR לסריקה מהטלפון:
+              <p className={cn(
+                "text-xs font-medium mb-2 transition-base",
+                tokenSaved ? "text-text-muted" : "text-text-muted/40"
+              )}>
+                2. לחץ להצגת QR לסריקה מהטלפון:
               </p>
               <button
                 type="button"
                 onClick={() => { setError(null); generateMutation.mutate(); }}
-                disabled={generateMutation.isPending}
+                disabled={!tokenSaved || generateMutation.isPending}
                 className="w-full flex items-center justify-center gap-2 rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark disabled:opacity-50 transition-base"
               >
                 {generateMutation.isPending
