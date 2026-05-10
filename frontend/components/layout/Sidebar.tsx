@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Plus,
   Settings,
+  Timer,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -67,6 +68,13 @@ export function Sidebar() {
           icon={<CalendarDays size={16} />}
           label="Schedule"
           active={pathname === "/schedule"}
+          collapsed={collapsed}
+        />
+        <NavItem
+          href="/focus"
+          icon={<Timer size={16} />}
+          label="Focus 🐧"
+          active={pathname === "/focus"}
           collapsed={collapsed}
         />
 
