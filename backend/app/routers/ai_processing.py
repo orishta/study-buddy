@@ -1,4 +1,5 @@
-"""AI endpoints — all inference runs locally through Ollama (no external API keys needed)."""
+"""AI endpoints — inference routes to Anthropic, OpenAI, or local Ollama depending
+on configured keys.  Falls back to Ollama (free, local) when no remote key is set."""
 from datetime import date
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException
@@ -10,6 +11,8 @@ from ..models import ClassSchedule, Course, Task, UserSettings
 from services.ollama_client import extract_topics_from_pdf, extract_topics_from_text, generate_mentor_advice
 from services.telegram_client import get_bot_username, send_message
 from services.morning_brief import send_morning_brief
+from services.ai_client import provider_status
+from services.keyring_store import set_secret
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -164,3 +167,32 @@ async def test_telegram_brief(db: Session = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=503, detail=str(e))
     return {"sent": True}
+
+
+# ── AI provider ────────────────────────────────────────────────────────────────
+
+class AiProviderStatusOut(BaseModel):
+    active_provider: str          # "ollama" | "anthropic" | "openai"
+    anthropic_key_set: bool
+    openai_key_set: bool
+
+
+class AiProviderKeysIn(BaseModel):
+    anthropic_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
+
+
+@router.get("/provider-status", response_model=AiProviderStatusOut)
+def get_provider_status():
+    """Return which AI provider is active and which keys are configured."""
+    return provider_status()
+
+
+@router.put("/provider-keys", response_model=AiProviderStatusOut)
+def update_provider_keys(payload: AiProviderKeysIn):
+    """Store (or clear) remote AI API keys in the OS keychain."""
+    if payload.anthropic_api_key is not None:
+        set_secret("anthropic_api_key", payload.anthropic_api_key)
+    if payload.openai_api_key is not None:
+        set_secret("openai_api_key", payload.openai_api_key)
+    return provider_status()

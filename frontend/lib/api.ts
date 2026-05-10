@@ -1,4 +1,5 @@
 import type {
+  AiProviderStatus,
   ClassSlot, ClassSlotCreate, ClassSlotUpdate,
   Course, CourseCreate, CourseUpdate,
   Material, MaterialCreate, MaterialUpdate,
@@ -103,6 +104,13 @@ export const api = {
       request<{ sent: boolean }>("/ai/telegram/test", { method: "POST" }),
     mentor: () =>
       request<{ advice: string }>("/ai/mentor", { method: "POST" }),
+    getProviderStatus: () =>
+      request<AiProviderStatus>("/ai/provider-status"),
+    setProviderKeys: (keys: { anthropic_api_key?: string; openai_api_key?: string }) =>
+      request<AiProviderStatus>("/ai/provider-keys", {
+        method: "PUT",
+        body: JSON.stringify(keys),
+      }),
   },
 
   // ── Schedule ─────────────────────────────────────────────────────────────────

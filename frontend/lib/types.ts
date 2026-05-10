@@ -1,4 +1,10 @@
 export type TaskStatus = "Todo" | "In Progress" | "Done";
+
+export interface AiProviderStatus {
+  active_provider: "ollama" | "anthropic" | "openai";
+  anthropic_key_set: boolean;
+  openai_key_set: boolean;
+}
 export type TaskPriority = "Low" | "Medium" | "High" | "Urgent";
 
 export interface Settings {

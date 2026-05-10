@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import ClassSchedule, Task, UserSettings
-from services.ollama_client import generate
+from services.ai_client import generate
 from services.telegram_client import send_message
 
 _DOW_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"]

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ExternalLink, Loader2, Mail, Send } from "lucide-react";
+import { CheckCircle2, ExternalLink, Loader2, Mail, Send, Cpu } from "lucide-react";
 import QRCode from "qrcode";
 import { TopBar } from "@/components/layout/TopBar";
 import { api } from "@/lib/api";
@@ -205,6 +205,129 @@ function TelegramPanel() {
             </button>
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ── AI Provider panel ──────────────────────────────────────────────────────────
+
+const PROVIDER_LABELS: Record<string, string> = {
+  ollama: "Ollama (local)",
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+};
+
+function AiProviderPanel() {
+  const qc = useQueryClient();
+  const [anthropicKey, setAnthropicKey] = useState("");
+  const [openaiKey, setOpenaiKey] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { data: status } = useQuery({
+    queryKey: ["ai-provider"],
+    queryFn: api.ai.getProviderStatus,
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: () =>
+      api.ai.setProviderKeys({
+        anthropic_api_key: anthropicKey || "",
+        openai_api_key: openaiKey || "",
+      }),
+    onSuccess: () => {
+      setSaved(true);
+      setError(null);
+      setTimeout(() => setSaved(false), 3000);
+      qc.invalidateQueries({ queryKey: ["ai-provider"] });
+      setAnthropicKey("");
+      setOpenaiKey("");
+    },
+    onError: (err: Error) => setError(err.message),
+  });
+
+  return (
+    <div className="rounded-xl border border-border bg-surface shadow-card p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Cpu size={15} className="text-sage" />
+          <h2 className="text-sm font-semibold text-text-primary">AI provider</h2>
+        </div>
+        {status && (
+          <span className="text-xs px-2 py-0.5 rounded-full bg-sage-light text-sage font-medium">
+            {PROVIDER_LABELS[status.active_provider] ?? status.active_provider}
+          </span>
+        )}
+      </div>
+
+      <p className="text-xs text-text-muted leading-relaxed">
+        StudyBuddy uses <strong>Ollama</strong> (local, free, private) by default.
+        Add a remote API key to use Anthropic or OpenAI instead — keys are stored in
+        your OS keychain, never sent to this server unencrypted.
+      </p>
+
+      {status && (
+        <div className="flex gap-2 text-[11px] text-text-muted">
+          <span className={status.anthropic_key_set ? "text-sage" : ""}>
+            {status.anthropic_key_set ? "✓" : "○"} Anthropic
+          </span>
+          <span className="text-border">·</span>
+          <span className={status.openai_key_set ? "text-sage" : ""}>
+            {status.openai_key_set ? "✓" : "○"} OpenAI
+          </span>
+          <span className="text-border">·</span>
+          <span className="text-sage">✓ Ollama (always available)</span>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs font-medium text-text-muted block mb-1.5">
+            Anthropic API key {status?.anthropic_key_set && <span className="text-sage">(set)</span>}
+          </label>
+          <input
+            type="password"
+            value={anthropicKey}
+            onChange={(e) => setAnthropicKey(e.target.value)}
+            placeholder={status?.anthropic_key_set ? "sk-ant-… (leave blank to keep existing)" : "sk-ant-…"}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-sage transition-base"
+          />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-text-muted block mb-1.5">
+            OpenAI API key {status?.openai_key_set && <span className="text-sage">(set)</span>}
+          </label>
+          <input
+            type="password"
+            value={openaiKey}
+            onChange={(e) => setOpenaiKey(e.target.value)}
+            placeholder={status?.openai_key_set ? "sk-… (leave blank to keep existing)" : "sk-…"}
+            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-sage transition-base"
+          />
+        </div>
+      </div>
+
+      {error && (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => saveMutation.mutate()}
+          disabled={(!anthropicKey && !openaiKey) || saveMutation.isPending}
+          className="rounded-lg border border-sage px-3 py-2 text-sm font-medium text-sage hover:bg-sage-light disabled:opacity-50 transition-base"
+        >
+          {saveMutation.isPending
+            ? <Loader2 size={13} className="animate-spin inline" />
+            : saved ? "✓ Saved" : "Save to keychain"}
+        </button>
+        <p className="text-[11px] text-text-muted">
+          Leave blank to clear an existing key and fall back to Ollama.
+        </p>
       </div>
     </div>
   );
@@ -441,6 +564,8 @@ export default function SettingsPage() {
             </div>
 
           </div>
+
+          <AiProviderPanel />
 
           <TelegramPanel />
 
