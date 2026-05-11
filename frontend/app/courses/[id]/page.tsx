@@ -6,7 +6,6 @@ import { ArrowLeft, ExternalLink } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { MaterialTracker } from "@/components/courses/MaterialTracker";
-import { CourseForm } from "@/components/courses/CourseForm";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { api } from "@/lib/api";
 
@@ -113,7 +112,6 @@ export default function CourseDetailPage({
         </div>
       </div>
 
-      <CourseForm />
       <TaskDialog />
     </>
   );

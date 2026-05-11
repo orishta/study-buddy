@@ -5,7 +5,6 @@ import { Upload } from "lucide-react";
 import { TopBar } from "@/components/layout/TopBar";
 import { WeeklyTimetable } from "@/components/schedule/WeeklyTimetable";
 import { ImportDialog } from "@/components/schedule/ImportDialog";
-import { CourseForm } from "@/components/courses/CourseForm";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 
 export default function SchedulePage() {
@@ -35,7 +34,6 @@ export default function SchedulePage() {
       </div>
 
       <ImportDialog open={importOpen} onClose={() => setImportOpen(false)} />
-      <CourseForm />
       <TaskDialog />
     </>
   );

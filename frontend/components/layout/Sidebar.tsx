@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard,
   CalendarDays,
@@ -11,6 +11,8 @@ import {
   Plus,
   Settings,
   Timer,
+  Pencil,
+  Trash2,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -191,35 +193,72 @@ function CourseNavItem({
   active: boolean;
   collapsed: boolean;
 }) {
+  const qc = useQueryClient();
+  const { openCourseForm } = useUI();
+
+  const deleteMutation = useMutation({
+    mutationFn: () => api.courses.delete(course.id),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["courses"] }),
+  });
+
   return (
-    <Link
-      href={`/courses/${course.id}`}
+    <div
       className={cn(
-        "flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-base group",
+        "group flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-base",
         active
           ? "bg-sage-light text-sage font-medium"
           : "text-text-muted hover:bg-gray-50 hover:text-text-primary"
       )}
       title={collapsed ? course.title : undefined}
     >
-      <span
-        className="shrink-0 w-2 h-2 rounded-full"
-        style={{ backgroundColor: course.color_code }}
-      />
-      <AnimatePresence mode="wait">
-        {!collapsed && (
-          <motion.span
-            key={course.id}
-            initial={{ opacity: 0, width: 0 }}
-            animate={{ opacity: 1, width: "auto" }}
-            exit={{ opacity: 0, width: 0 }}
-            transition={{ duration: 0.15 }}
-            className="overflow-hidden whitespace-nowrap flex-1"
+      <Link
+        href={`/courses/${course.id}`}
+        className="flex items-center gap-2.5 flex-1 min-w-0"
+      >
+        <span
+          className="shrink-0 w-2 h-2 rounded-full"
+          style={{ backgroundColor: course.color_code }}
+        />
+        <AnimatePresence mode="wait">
+          {!collapsed && (
+            <motion.span
+              key={course.id}
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.15 }}
+              className="overflow-hidden whitespace-nowrap flex-1"
+            >
+              {course.emoji} {course.title}
+            </motion.span>
+          )}
+        </AnimatePresence>
+      </Link>
+
+      {/* Edit / delete — visible on row hover, only when sidebar is expanded */}
+      {!collapsed && (
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-base shrink-0">
+          <button
+            onClick={(e) => { e.preventDefault(); openCourseForm(course.id); }}
+            className="p-1 rounded hover:bg-sage-light hover:text-sage transition-base"
+            title="Edit course"
           >
-            {course.emoji} {course.title}
-          </motion.span>
-        )}
-      </AnimatePresence>
-    </Link>
+            <Pencil size={11} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              if (confirm(`Delete "${course.title}"? This cannot be undone.`)) {
+                deleteMutation.mutate();
+              }
+            }}
+            className="p-1 rounded hover:bg-red-50 hover:text-red-500 transition-base"
+            title="Delete course"
+          >
+            <Trash2 size={11} />
+          </button>
+        </div>
+      )}
+    </div>
   );
 }

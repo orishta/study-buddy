@@ -4,6 +4,7 @@ import { Providers } from "@/components/providers";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { OnboardingGate } from "@/components/OnboardingGate";
 import { MentorBox } from "@/components/MentorBox";
+import { CourseForm } from "@/components/courses/CourseForm";
 
 export const metadata: Metadata = {
   title: "StudyBuddy",
@@ -26,6 +27,7 @@ export default function RootLayout({
                 {children}
               </main>
               <MentorBox />
+              <CourseForm />
             </div>
           </OnboardingGate>
         </Providers>

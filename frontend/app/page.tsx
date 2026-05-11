@@ -4,7 +4,6 @@ import { useEffect } from "react";
 import { TopBar } from "@/components/layout/TopBar";
 import { CourseGrid } from "@/components/courses/CourseGrid";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
-import { CourseForm } from "@/components/courses/CourseForm";
 import { TaskDialog } from "@/components/tasks/TaskDialog";
 import { useUI } from "@/lib/store";
 
@@ -50,7 +49,6 @@ export default function DashboardPage() {
       </div>
 
       {/* Global modals */}
-      <CourseForm />
       <TaskDialog />
     </>
   );
