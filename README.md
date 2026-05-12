@@ -11,6 +11,7 @@
 StudyBuddy is a personal productivity tool designed specifically for students. It replaces the chaos of scattered WhatsApp reminders, Google Calendar events, and sticky notes with a single unified dashboard that understands academic workflows.
 
 The core design philosophy is **local-first and offline-capable** - every feature works without an internet connection. AI capabilities default to a zero-network rule engine; cloud models are an opt-in upgrade stored in your OS keychain, never in the app.
+Quick Start below !!
 
 ---
 
