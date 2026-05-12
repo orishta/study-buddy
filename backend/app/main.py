@@ -7,7 +7,7 @@ from sqlalchemy import text
 from dotenv import load_dotenv
 
 from .database import engine, Base
-from .routers import courses, materials, tasks, settings, schedule, ai_processing
+from .routers import courses, materials, tasks, settings, schedule, ai_processing, calendar
 
 load_dotenv()
 
@@ -16,6 +16,9 @@ load_dotenv()
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
     _run_migrations()
+    # Warm up the user profile cache (sub-millisecond on subsequent requests)
+    from services.profile_engine import load_profile
+    load_profile()
     from services.scheduler import start_scheduler
     bg_tasks = start_scheduler()
     yield
@@ -57,6 +60,7 @@ app.include_router(tasks.router)
 app.include_router(settings.router)
 app.include_router(schedule.router)
 app.include_router(ai_processing.router)
+app.include_router(calendar.router)
 
 
 @app.get("/health")

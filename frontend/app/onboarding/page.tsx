@@ -12,54 +12,122 @@ import QRCode from "qrcode";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
-// ── Step components ────────────────────────────────────────────────────────────
+// ── 8-Question Executive Functioning Questionnaire ────────────────────────────
 
-type QuizAnswers = { motivation: string; style: string; peak_time: string };
+interface Question {
+  key: string;
+  he: string;
+  en: string;
+  options: { value: string; he: string; en: string; emoji: string }[];
+}
 
-const QUIZ_QUESTIONS = [
+const QUESTIONS: Question[] = [
   {
-    key: "motivation" as const,
-    question: "מה מניע אותך ללמוד?",
+    key: "q1",
+    he: "כמה קשה לך להתחיל משימה גם כשאתה יודע שצריך?",
+    en: "How hard is it to start a task even when you know you should?",
     options: [
-      { value: "grades", label: "ציונים", emoji: "🏆" },
-      { value: "curiosity", label: "סקרנות", emoji: "🧠" },
-      { value: "deadlines", label: "לחץ מועדים", emoji: "📅" },
+      { value: "q1_hard",   he: "מאוד קשה — לעתים נעצר לשעות", en: "Very hard — I stall for hours",   emoji: "😩" },
+      { value: "q1_medium", he: "קשה לפעמים — צריך דחיפה",      en: "Sometimes hard — need a push",    emoji: "😐" },
+      { value: "q1_easy",   he: "קל יחסית — מתחיל מיד",          en: "Usually easy — I just start",     emoji: "🚀" },
     ],
   },
   {
-    key: "style" as const,
-    question: "איך אתה לומד הכי טוב?",
+    key: "q2",
+    he: "כמה זמן אתה מצליח להישאר ממוקד לפני שהתשומת-לב נשברת?",
+    en: "How long can you stay focused before your attention breaks?",
     options: [
-      { value: "reading", label: "קריאה", emoji: "📖" },
-      { value: "practice", label: "תרגול", emoji: "✏️" },
-      { value: "listening", label: "הקשבה", emoji: "🎧" },
+      { value: "q2_15", he: "עד 15 דקות", en: "Up to 15 min", emoji: "⚡" },
+      { value: "q2_30", he: "כ-30 דקות",  en: "About 30 min", emoji: "⏱️" },
+      { value: "q2_60", he: "כ-60 דקות",  en: "About 60 min", emoji: "🎯" },
+      { value: "q2_90", he: "90+ דקות",   en: "90+ min",      emoji: "🔥" },
     ],
   },
   {
-    key: "peak_time" as const,
-    question: "מתי אתה הכי ממוקד?",
+    key: "q3",
+    he: "קריאת טקסטים ארוכים מרגישה לך:",
+    en: "Reading long texts feels:",
     options: [
-      { value: "morning", label: "בוקר", emoji: "🌅" },
-      { value: "afternoon", label: "צהריים", emoji: "☀️" },
-      { value: "evening", label: "ערב", emoji: "🌙" },
+      { value: "q3_avoid",  he: "כמעט בלתי-אפשרי — מתחמק",       en: "Nearly impossible — I avoid it",    emoji: "😰" },
+      { value: "q3_skip",   he: "קשה — מדלג על קטעים",             en: "Hard — I skip sections",             emoji: "📖" },
+      { value: "q3_ok",     he: "בסדר — עם הפסקות",                en: "OK — with breaks",                   emoji: "✅" },
+      { value: "q3_enjoy",  he: "נוח ומהנה",                        en: "Comfortable and enjoyable",          emoji: "🤓" },
+    ],
+  },
+  {
+    key: "q4",
+    he: "כמה פעמים בשבוע אתה מאחר, שוכח דדליינים, או מופתע מכמה זמן עבר?",
+    en: "How often do you lose track of time, miss deadlines, or feel surprised how much time passed?",
+    options: [
+      { value: "q4_often",     he: "כמעט כל יום",    en: "Almost every day", emoji: "😵" },
+      { value: "q4_sometimes", he: "כמה פעמים בשבוע", en: "A few times/week", emoji: "🤔" },
+      { value: "q4_rarely",    he: "לפעמים",          en: "Sometimes",        emoji: "😊" },
+      { value: "q4_never",     he: "כמעט אף פעם",     en: "Rarely",           emoji: "⏰" },
+    ],
+  },
+  {
+    key: "q5",
+    he: "כשרשימת המשימות שלך ארוכה מדי, מה קורה?",
+    en: "When your task list is too long, what happens?",
+    options: [
+      { value: "q5_shutdown", he: "נסגר — לא עושה כלום",      en: "I shut down — do nothing",       emoji: "🫥" },
+      { value: "q5_panic",    he: "חרד — קופץ בין משימות",     en: "I panic — jump between tasks",   emoji: "😰" },
+      { value: "q5_manage",   he: "מנהל, אבל מרגיש לחץ",       en: "I manage but feel stressed",     emoji: "😤" },
+      { value: "q5_fine",     he: "בסדר — מסדר ומתחיל",        en: "Fine — I prioritize and go",     emoji: "💪" },
+    ],
+  },
+  {
+    key: "q6",
+    he: "מה הכי מניע אותך להשלים משימה?",
+    en: "What motivates you most to complete a task?",
+    options: [
+      { value: "q6_intrinsic", he: "עניין ואהבה לנושא",    en: "Interest & love of subject",   emoji: "🌱" },
+      { value: "q6_social",    he: "שיתוף עם חברים / קבוצה", en: "Studying with others",       emoji: "👥" },
+      { value: "q6_deadline",  he: "לחץ הדדליין",           en: "Deadline pressure",            emoji: "⏰" },
+      { value: "q6_gamified",  he: "נקודות / פרסים / רצף",  en: "Points / rewards / streaks",   emoji: "🏆" },
+    ],
+  },
+  {
+    key: "q7",
+    he: "מתי אתה הכי חד ומרוכז ביום?",
+    en: "When do you feel sharpest during the day?",
+    options: [
+      { value: "q7_morning",   he: "בוקר (6–10)",         en: "Morning (6–10am)",    emoji: "🌅" },
+      { value: "q7_midday",    he: "צהריים (10–13)",       en: "Midday (10am–1pm)",   emoji: "☀️" },
+      { value: "q7_afternoon", he: "אחר הצהריים (14–18)",  en: "Afternoon (2–6pm)",   emoji: "🌤" },
+      { value: "q7_evening",   he: "ערב (19+)",            en: "Evening (7pm+)",      emoji: "🌙" },
+    ],
+  },
+  {
+    key: "q8",
+    he: "איזה סגנון הפסקות עובד הכי טוב בשבילך?",
+    en: "Which break style works best for you?",
+    options: [
+      { value: "q8_pomodoro", he: "25 דקות עבודה + 5 הפסקה",     en: "25 min work + 5 break",       emoji: "🍅" },
+      { value: "q8_deep",     he: "50 דקות עבודה + 15 הפסקה",    en: "50 min work + 15 break",      emoji: "🎯" },
+      { value: "q8_flow",     he: "עד שאני עוצר לבד",             en: "Until I naturally stop",      emoji: "🌊" },
+      { value: "q8_micro",    he: "15 דקות עבודה + 3 הפסקה",     en: "15 min work + 3 break",       emoji: "⚡" },
     ],
   },
 ];
 
-function StepQuiz({ onNext }: { onNext: (answers: QuizAnswers) => void }) {
-  const [qIndex, setQIndex] = useState(0);
-  const [answers, setAnswers] = useState<Partial<QuizAnswers>>({});
+// ── Questionnaire step ────────────────────────────────────────────────────────
 
-  const q = QUIZ_QUESTIONS[qIndex];
-  const totalQ = QUIZ_QUESTIONS.length;
+function StepQuiz({ onNext }: { onNext: (answers: Record<string, string>) => void }) {
+  const [qIndex, setQIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [lang, setLang] = useState<"he" | "en">("he");
+
+  const q = QUESTIONS[qIndex];
+  const total = QUESTIONS.length;
 
   function pick(value: string) {
     const next = { ...answers, [q.key]: value };
     setAnswers(next);
-    if (qIndex < totalQ - 1) {
+    if (qIndex < total - 1) {
       setTimeout(() => setQIndex((i) => i + 1), 220);
     } else {
-      onNext(next as QuizAnswers);
+      onNext(next);
     }
   }
 
@@ -70,36 +138,48 @@ function StepQuiz({ onNext }: { onNext: (answers: QuizAnswers) => void }) {
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.18 }}
-      className="w-full max-w-md space-y-6"
+      className="w-full max-w-md space-y-5"
     >
-      <div className="text-center space-y-2">
-        <p className="text-xs text-text-muted font-medium tracking-wide uppercase">
-          שאלה {qIndex + 1} מתוך {totalQ}
-        </p>
-        <h2 className="text-xl font-semibold text-text-primary">{q.question}</h2>
+      {/* Language toggle */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setLang((l) => (l === "he" ? "en" : "he"))}
+          className="text-xs text-text-muted hover:text-sage transition-base px-2 py-1 rounded-lg border border-border bg-surface"
+        >
+          {lang === "he" ? "English" : "עברית"}
+        </button>
       </div>
 
-      <div className="grid grid-cols-3 gap-3">
+      <div className={cn("text-center space-y-2", lang === "he" ? "direction-rtl" : "")} dir={lang === "he" ? "rtl" : "ltr"}>
+        <p className="text-xs text-text-muted font-medium tracking-wide uppercase">
+          {lang === "he" ? `שאלה ${qIndex + 1} מתוך ${total}` : `Question ${qIndex + 1} of ${total}`}
+        </p>
+        <h2 className="text-lg font-semibold text-text-primary leading-snug">
+          {lang === "he" ? q.he : q.en}
+        </h2>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2.5" dir={lang === "he" ? "rtl" : "ltr"}>
         {q.options.map((opt) => (
           <button
             key={opt.value}
             onClick={() => pick(opt.value)}
             className={cn(
-              "flex flex-col items-center gap-2 rounded-2xl border-2 px-3 py-5 text-sm font-medium transition-base hover:border-sage hover:bg-sage-light",
+              "flex flex-col items-center gap-2 rounded-2xl border-2 px-3 py-4 text-sm font-medium transition-base hover:border-sage hover:bg-sage-light",
               answers[q.key] === opt.value
                 ? "border-sage bg-sage-light text-sage"
                 : "border-border text-text-primary bg-surface"
             )}
           >
-            <span className="text-3xl">{opt.emoji}</span>
-            <span className="text-xs">{opt.label}</span>
+            <span className="text-2xl">{opt.emoji}</span>
+            <span className="text-xs leading-tight text-center">{lang === "he" ? opt.he : opt.en}</span>
           </button>
         ))}
       </div>
 
-      {/* Progress dots */}
-      <div className="flex justify-center gap-1.5">
-        {QUIZ_QUESTIONS.map((_, i) => (
+      {/* Progress bar */}
+      <div className="flex gap-1.5 justify-center">
+        {QUESTIONS.map((_, i) => (
           <div
             key={i}
             className={cn(
@@ -112,6 +192,8 @@ function StepQuiz({ onNext }: { onNext: (answers: QuizAnswers) => void }) {
     </motion.div>
   );
 }
+
+// ── Welcome step ──────────────────────────────────────────────────────────────
 
 function StepWelcome({ onNext }: { onNext: (name: string) => void }) {
   const [name, setName] = useState("");
@@ -172,7 +254,7 @@ function StepWelcome({ onNext }: { onNext: (name: string) => void }) {
   );
 }
 
-// ── ──────────────────────────────────────────────────────────────────────────
+// ── Schedule step ─────────────────────────────────────────────────────────────
 
 const FORMAT_EXAMPLE = `subject_name,day_of_week,start_time,end_time,room
 אלגוריתמים,1,08:15,11:45,וסטון 007
@@ -200,7 +282,6 @@ function StepSchedule({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
   const urlMutation = useMutation({
     mutationFn: async () => {
       const previews = await api.schedule.previewUrl(url.trim());
-      // Bulk-create all previewed slots
       return api.schedule.bulkCreate(previews.map((s) => ({
         subject_name: s.subject_name,
         day_of_week: s.day_of_week,
@@ -350,11 +431,11 @@ function StepSchedule({ onNext, onSkip }: { onNext: () => void; onSkip: () => vo
   );
 }
 
-// ── ──────────────────────────────────────────────────────────────────────────
+// ── Telegram step ─────────────────────────────────────────────────────────────
 
 function StepTelegram({ onComplete }: { onComplete: () => void }) {
   const [botToken, setBotToken] = useState("");
-  const [tokenSaved, setTokenSaved] = useState(false);  // true once backend confirms save
+  const [tokenSaved, setTokenSaved] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [deepLink, setDeepLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -425,7 +506,6 @@ function StepTelegram({ onComplete }: { onComplete: () => void }) {
           </div>
         ) : (
           <>
-            {/* Step 1: create bot + paste token */}
             <div className="space-y-2">
               <p className="text-xs font-medium text-text-muted">
                 1. פתח Telegram → חפש{" "}
@@ -460,7 +540,6 @@ function StepTelegram({ onComplete }: { onComplete: () => void }) {
               </div>
             </div>
 
-            {/* Step 2: scan QR — only enabled after token is saved */}
             <div>
               <p className={cn(
                 "text-xs font-medium mb-2 transition-base",
@@ -533,10 +612,13 @@ const STEPS = ["סגנון למידה", "שם", "לוח זמנים", "Telegram"]
 export default function OnboardingPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
-  const saveProfileMutation = useMutation({ mutationFn: api.settings.update });
 
-  function handleQuizDone(answers: QuizAnswers) {
-    saveProfileMutation.mutate({ learning_style_profile: answers });
+  const profileMutation = useMutation({
+    mutationFn: (answers: Record<string, string>) => api.ai.submitQuestionnaire(answers),
+  });
+
+  function handleQuizDone(answers: Record<string, string>) {
+    profileMutation.mutate(answers);
     setStep(1);
   }
 
@@ -546,9 +628,9 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6">
+    <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center p-6 overflow-y-auto">
       {/* Progress dots */}
-      <div className="flex items-center gap-2 mb-10">
+      <div className="flex items-center gap-2 mb-8 shrink-0">
         {STEPS.map((_, i) => (
           <div key={i} className="flex items-center gap-2">
             <div

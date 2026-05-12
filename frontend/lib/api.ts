@@ -5,6 +5,7 @@ import type {
   Material, MaterialCreate, MaterialUpdate,
   Settings, SlotPreview,
   Task, TaskCreate, TaskUpdate,
+  UserProfile,
 } from "./types";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -111,6 +112,21 @@ export const api = {
         method: "PUT",
         body: JSON.stringify(keys),
       }),
+    submitQuestionnaire: (answers: Record<string, string>) =>
+      request<UserProfile>("/ai/questionnaire", {
+        method: "POST",
+        body: JSON.stringify({ answers }),
+      }),
+    getProfile: () => request<UserProfile>("/ai/questionnaire/profile"),
+  },
+
+  // ── Calendar ─────────────────────────────────────────────────────────────────
+
+  calendar: {
+    subscribeUrl: () =>
+      request<{ webcal_url: string; google_calendar_url: string; feed_url: string }>(
+        "/calendar/subscribe-url",
+      ),
   },
 
   // ── Schedule ─────────────────────────────────────────────────────────────────

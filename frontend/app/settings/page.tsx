@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, ExternalLink, Loader2, Mail, Send, Cpu } from "lucide-react";
+import { CalendarDays, CheckCircle2, ExternalLink, Loader2, Mail, Send, Cpu } from "lucide-react";
 import QRCode from "qrcode";
 import { TopBar } from "@/components/layout/TopBar";
 import { api } from "@/lib/api";
@@ -464,6 +464,114 @@ function GmailPanel() {
   );
 }
 
+// ── Calendar subscription panel ────────────────────────────────────────────────
+
+function CalendarPanel() {
+  const [urls, setUrls] = useState<{ webcal_url: string; google_calendar_url: string; feed_url: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function loadUrls() {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await api.calendar.subscribeUrl();
+      setUrls(data);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function copyFeedUrl() {
+    if (!urls) return;
+    await navigator.clipboard.writeText(urls.webcal_url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-surface shadow-card p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <CalendarDays size={15} className="text-sage" />
+        <h2 className="text-sm font-semibold text-text-primary">Calendar subscription</h2>
+      </div>
+
+      <p className="text-xs text-text-muted leading-relaxed">
+        Subscribe to your personalised daily schedule in any calendar app (Google Calendar, Apple Calendar, Outlook).
+        The feed auto-refreshes every hour — no Google OAuth required, everything stays local.
+      </p>
+
+      {!urls ? (
+        <button
+          type="button"
+          onClick={loadUrls}
+          disabled={loading}
+          className="flex items-center gap-2 rounded-lg border border-sage px-3 py-2 text-sm font-medium text-sage hover:bg-sage-light disabled:opacity-50 transition-base"
+        >
+          {loading ? <Loader2 size={13} className="animate-spin" /> : <CalendarDays size={13} />}
+          Show subscribe links
+        </button>
+      ) : (
+        <div className="space-y-3">
+          {/* webcal:// copy */}
+          <div>
+            <label className="text-xs font-medium text-text-muted block mb-1.5">
+              Feed URL (webcal:// — paste into any calendar app)
+            </label>
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={urls.webcal_url}
+                className="flex-1 rounded-lg border border-border bg-background px-3 py-2 text-xs font-mono text-text-muted focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={copyFeedUrl}
+                className="rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-muted hover:bg-gray-50 transition-base whitespace-nowrap"
+              >
+                {copied ? "✓ Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+
+          {/* Quick-add buttons */}
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={urls.webcal_url}
+              className="flex items-center gap-1.5 rounded-lg bg-sage px-3 py-2 text-xs font-medium text-white hover:bg-sage-dark transition-base"
+            >
+              <ExternalLink size={11} />
+              Subscribe (Apple / Outlook)
+            </a>
+            <a
+              href={urls.google_calendar_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-xs font-medium text-text-muted hover:bg-gray-50 transition-base"
+            >
+              <ExternalLink size={11} />
+              Add to Google Calendar
+            </a>
+          </div>
+
+          <p className="text-[11px] text-text-muted">
+            The feed reflects today&apos;s personalised schedule based on your classes and active tasks. Subscribe once — it auto-refreshes hourly.
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Main page ──────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
@@ -566,6 +674,8 @@ export default function SettingsPage() {
           </div>
 
           <AiProviderPanel />
+
+          <CalendarPanel />
 
           <TelegramPanel />
 

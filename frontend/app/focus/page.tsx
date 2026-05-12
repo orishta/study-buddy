@@ -188,6 +188,32 @@ function BadgeBoard({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ── Web Audio beep (no audio file needed) ─────────────────────────────────────
+
+function beepBeepBeep() {
+  try {
+    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+    const pulses = [0, 0.35, 0.7];
+    pulses.forEach((offset) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0, ctx.currentTime + offset);
+      gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + offset + 0.02);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.2);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.25);
+    });
+    // Close context after all pulses finish
+    setTimeout(() => ctx.close(), 1200);
+  } catch {
+    // AudioContext unavailable (e.g. SSR) — fail silently
+  }
+}
+
 // ── Timer display ─────────────────────────────────────────────────────────────
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -235,11 +261,12 @@ export default function FocusPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [running]);
 
-  // Penguin alert on tab switch during active session
+  // Penguin alert + beep on tab switch during active session
   useEffect(() => {
     function onVisibilityChange() {
       if (document.hidden && running) {
         setPenguin("היי! אתה אמור להיות בפוקוס 🐧 חזור לכאן!");
+        beepBeepBeep();
       }
     }
     document.addEventListener("visibilitychange", onVisibilityChange);

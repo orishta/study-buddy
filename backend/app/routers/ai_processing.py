@@ -8,11 +8,12 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import ClassSchedule, Course, Task, UserSettings
-from services.ollama_client import extract_topics_from_pdf, extract_topics_from_text, generate_mentor_advice
+from services.ollama_client import extract_topics_from_pdf, extract_topics_from_text
 from services.telegram_client import get_bot_username, send_message
 from services.morning_brief import send_morning_brief
 from services.ai_client import provider_status
 from services.keyring_store import set_secret
+from services.profile_engine import generate_advice, load_profile, score_questionnaire, UserProfile
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -70,10 +71,7 @@ def _today_dow() -> int:
 
 @router.post("/mentor", response_model=MentorOut)
 async def get_mentor_advice(db: Session = Depends(get_db)):
-    """Generate a personalised 'what to do right now' action plan via Ollama."""
-    settings = db.query(UserSettings).first()
-    profile = settings.learning_style_profile if settings else None
-
+    """Generate a personalised 'what to do right now' action plan (offline, rule-based)."""
     dow = _today_dow()
     classes = (
         db.query(ClassSchedule)
@@ -95,19 +93,57 @@ async def get_mentor_advice(db: Session = Depends(get_db)):
     ]
     tasks_active = [
         {
+            "id": t.id,
             "title": t.title,
             "status": t.status,
-            "due_date": t.due_date.strftime("%d/%m") if t.due_date else None,
+            "priority": t.priority,
+            "due_date": t.due_date.isoformat() if t.due_date else None,
         }
         for t in tasks
     ]
 
-    try:
-        advice = await generate_mentor_advice(schedule_today, tasks_active, profile)
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-
+    profile = load_profile()
+    advice = generate_advice(tasks_active, schedule_today, profile)
     return MentorOut(advice=advice.strip())
+
+
+# ── Questionnaire / onboarding profile ───────────────────────────────────────
+
+
+class QuestionnaireIn(BaseModel):
+    answers: dict[str, str]   # {"q1": "q1_hard", "q2": "q2_30", ...}
+
+
+class ProfileOut(BaseModel):
+    initiation_difficulty: int
+    sustained_attention: int
+    reading_load: int
+    time_blindness: int
+    overwhelm_sensitivity: int
+    motivation_style: str
+    peak_time: str
+    break_style: str
+    block_minutes: int
+    warmup: bool
+    format_style: str
+    show_timer: bool
+    max_visible_tasks: int
+    framing_prefix: str
+    onboarding_done: bool
+
+
+@router.post("/questionnaire", response_model=ProfileOut)
+def submit_questionnaire(payload: QuestionnaireIn):
+    """Score the onboarding questionnaire and persist the resulting UserProfile."""
+    profile = score_questionnaire(payload.answers)
+    return ProfileOut(**profile.__dict__)
+
+
+@router.get("/questionnaire/profile", response_model=ProfileOut)
+def get_profile():
+    """Return the current user profile (or defaults if onboarding not done)."""
+    p = load_profile()
+    return ProfileOut(**p.__dict__)
 
 
 # ── Telegram ───────────────────────────────────────────────────────────────────

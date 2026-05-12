@@ -12,6 +12,9 @@ backend/.env
 *.db-wal
 *.db-shm
 
+# User profile (personal data — generated at first run)
+backend/user_profile.json
+
 # Node / Next.js
 frontend/node_modules/
 frontend/.next/

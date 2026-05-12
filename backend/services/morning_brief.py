@@ -1,10 +1,15 @@
-"""Assembles and sends the daily Telegram morning brief via Ollama."""
+"""Assembles and sends the daily Telegram morning brief.
+
+Uses the profile_engine (rule-based, zero LLM calls) by default.
+Falls back to ai_client.generate only when a remote key is configured
+AND the user explicitly wants AI-generated content (opt-in via settings).
+"""
 from datetime import date, datetime
 from sqlalchemy.orm import Session
 
 from app.database import SessionLocal
 from app.models import ClassSchedule, Task, UserSettings
-from services.ai_client import generate
+from services.profile_engine import generate_advice, load_profile
 from services.telegram_client import send_message
 
 _DOW_NAMES = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"]
@@ -103,9 +108,33 @@ async def send_morning_brief() -> None:
 
         ctx = _gather_context(db)
         name = settings.display_name or "סטודנט"
-        profile = settings.learning_style_profile or {}
-        prompt = _build_prompt(ctx, name, profile)
-        message = await generate(prompt)
+        profile = load_profile()
+
+        # Build task and schedule dicts for the rule-based engine
+        all_tasks = [t for t in [*ctx["overdue"], *ctx["due_today"], *ctx["in_progress"]]]
+        # Deduplicate while preserving order
+        seen: set[int] = set()
+        tasks_dedup = []
+        for t in all_tasks:
+            if t.id not in seen:
+                seen.add(t.id)
+                tasks_dedup.append({
+                    "id": t.id, "title": t.title, "status": t.status,
+                    "priority": t.priority,
+                    "due_date": t.due_date.isoformat() if t.due_date else None,
+                })
+
+        schedule_today = [
+            {"start_time": c.start_time, "end_time": c.end_time, "subject_name": c.subject_name}
+            for c in ctx["classes"]
+        ]
+
+        # Generate rule-based message (always works offline)
+        today_name = _DOW_NAMES[_today_dow()]
+        today_str = date.today().strftime("%d/%m/%Y")
+        header = f"🌅 *בוקר טוב {name}!* — {today_name}, {today_str}\n\n"
+        body = generate_advice(tasks_dedup, schedule_today, profile)
+        message = header + body
         await send_message(chat_id, message.strip())
     finally:
         db.close()

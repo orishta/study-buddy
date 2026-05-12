@@ -1,5 +1,23 @@
 export type TaskStatus = "Todo" | "In Progress" | "Done";
 
+export interface UserProfile {
+  initiation_difficulty: number;
+  sustained_attention: number;
+  reading_load: number;
+  time_blindness: number;
+  overwhelm_sensitivity: number;
+  motivation_style: "intrinsic" | "social" | "deadline" | "gamified";
+  peak_time: "morning" | "midday" | "afternoon" | "evening";
+  break_style: "pomodoro" | "deep_work" | "flow" | "micro";
+  block_minutes: number;
+  warmup: boolean;
+  format_style: "bullets" | "paragraph";
+  show_timer: boolean;
+  max_visible_tasks: number;
+  framing_prefix: string;
+  onboarding_done: boolean;
+}
+
 export interface AiProviderStatus {
   active_provider: "ollama" | "anthropic" | "openai";
   anthropic_key_set: boolean;
