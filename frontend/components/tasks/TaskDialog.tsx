@@ -42,14 +42,16 @@ export function TaskDialog() {
   useEffect(() => {
     if (!taskDialogOpen) return;
     if (isEditMode && existingTask) {
-      setTitle(existingTask.title);
+      // Task data loaded — populate all fields
+      setTitle(existingTask.title ?? "");
       setDescription(existingTask.description ?? "");
       setCourseId(existingTask.course_id ?? null);
       setStatus(existingTask.status);
       setPriority(existingTask.priority);
       setDueDate(existingTask.due_date ? existingTask.due_date.slice(0, 10) : "");
       setEstimatedMin(existingTask.estimated_minutes?.toString() ?? "");
-    } else if (!isEditMode) {
+    } else {
+      // Create mode OR edit mode before task loads — always reset to clean state
       setTitle("");
       setDescription("");
       setCourseId(contextCourseId ?? null);
@@ -278,7 +280,7 @@ export function TaskDialog() {
                 </button>
                 <button
                   type="submit"
-                  disabled={!title.trim() || isPending}
+                  disabled={!title?.trim() || isPending}
                   className="flex-1 rounded-lg bg-sage px-3 py-2 text-sm font-medium text-white hover:bg-sage-dark disabled:opacity-50 transition-base"
                 >
                   {isPending
