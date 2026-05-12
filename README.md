@@ -328,8 +328,3 @@ make dev
 | ICS subscription feed | Google Calendar API | No OAuth dance, works with every calendar app, self-refreshes |
 | Web Audio API for beep | Audio file | Zero dependency, zero network, synthesised in browser |
 
----
-
-## Built with Claude Code
-
-This project was designed and built iteratively using [Claude Code](https://claude.ai/code) by Anthropic.
