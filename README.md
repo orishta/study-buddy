@@ -1,6 +1,6 @@
 # StudyBuddy
 
-> A privacy-first, fully local academic dashboard built for students who struggle with executive functioning — no cloud, no subscriptions, no data leaving your machine.
+> A privacy-first, fully local academic dashboard built for students who struggle with executive functioning - no cloud, no subscriptions, no data leaving your machine.
 
 **Stack:** Next.js 14 · FastAPI · SQLite · Tailwind CSS · framer-motion · React Query · Zustand
 
@@ -8,9 +8,9 @@
 
 ## What is this?
 
-StudyBuddy is a personal productivity tool designed specifically for students at Israeli academic institutions (MTA, Technion, BGU, etc.). It replaces the chaos of scattered WhatsApp reminders, Google Calendar events, and sticky notes with a single unified dashboard that understands academic workflows.
+StudyBuddy is a personal productivity tool designed specifically for students. It replaces the chaos of scattered WhatsApp reminders, Google Calendar events, and sticky notes with a single unified dashboard that understands academic workflows.
 
-The core design philosophy is **local-first and offline-capable** — every feature works without an internet connection. AI capabilities default to a zero-network rule engine; cloud models are an opt-in upgrade stored in your OS keychain, never in the app.
+The core design philosophy is **local-first and offline-capable** - every feature works without an internet connection. AI capabilities default to a zero-network rule engine; cloud models are an opt-in upgrade stored in your OS keychain, never in the app.
 
 ---
 
@@ -24,7 +24,7 @@ The core design philosophy is **local-first and offline-capable** — every feat
 | AI syllabus parser | ✅ Shipped | Paste/upload syllabus → auto-extract topic list |
 | Gamified Focus Timer | ✅ Shipped | Circular Pomodoro timer, 7 unlockable badges, penguin mascot |
 | Executive-functioning onboarding | ✅ Shipped | 8-question diagnostic quiz → personalised AI profile |
-| Offline rule-based mentor | ✅ Shipped | "What should I do right now?" — works with zero network |
+| Offline rule-based mentor | ✅ Shipped | "What should I do right now?" - works with zero network |
 | ICS calendar subscription feed | ✅ Shipped | `webcal://` feed, auto-refreshes hourly in any calendar app |
 | Telegram morning brief | ✅ Shipped | Daily briefing with schedule + tasks, fully rule-based |
 | Telegram bot commands | ✅ Shipped | `/today`, `/tasks`, `/help` |
@@ -44,7 +44,7 @@ The core design philosophy is **local-first and offline-capable** — every feat
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Browser — Next.js 14 App Router                            │
+│  Browser - Next.js 14 App Router                            │
 │  React Query (server state) · Zustand (UI state)            │
 │  Tailwind CSS · framer-motion · dnd-kit                     │
 └───────────────────┬─────────────────────────────────────────┘
@@ -77,7 +77,7 @@ The core design philosophy is **local-first and offline-capable** — every feat
 
 ### Why SQLite?
 
-A local student dashboard has one user and thousands (not millions) of rows. SQLite eliminates infrastructure entirely — no Docker, no Postgres, no connection pool. The database is a single file you can copy, back up, or delete. FastAPI's `StaticPool` + `check_same_thread=False` makes it thread-safe with SQLAlchemy.
+A local student dashboard has one user and thousands (not millions) of rows. SQLite eliminates infrastructure entirely - no Docker, no Postgres, no connection pool. The database is a single file you can copy, back up, or delete. FastAPI's `StaticPool` + `check_same_thread=False` makes it thread-safe with SQLAlchemy.
 
 ### Why FastAPI?
 
@@ -85,7 +85,7 @@ Pydantic v2 gives us runtime type validation for free. FastAPI's lifespan contex
 
 ### Why Next.js App Router over a SPA?
 
-Server components allow the HTML shell to render instantly on first load. The `"use client"` boundary is explicit — only components that actually need browser APIs opt in to the JS bundle. React Query handles cache invalidation so the UI stays fresh without polling.
+Server components allow the HTML shell to render instantly on first load. The `"use client"` boundary is explicit - only components that actually need browser APIs opt in to the JS bundle. React Query handles cache invalidation so the UI stays fresh without polling.
 
 ---
 
@@ -95,10 +95,10 @@ Server components allow the HTML shell to render instantly on first load. The `"
 
 The original prototype used Ollama (a local LLM runner). It worked, but had two problems:
 
-1. **Setup friction** — users had to install Ollama separately, pull a model (1–8 GB), wait for it to load, and hope it responded in under 30 seconds.
-2. **Flakiness** — LLMs are probabilistic. The same question can produce wildly different advice, which is actively harmful for someone with executive dysfunction who needs *predictable* structure.
+1. **Setup friction** - users had to install Ollama separately, pull a model (1–8 GB), wait for it to load, and hope it responded in under 30 seconds.
+2. **Flakiness** - LLMs are probabilistic. The same question can produce wildly different advice, which is actively harmful for someone with executive dysfunction who needs *predictable* structure.
 
-The replacement is a **Weighted Scoring Engine** — a deterministic rule-based system that is faster, more predictable, and requires zero network access.
+The replacement is a **Weighted Scoring Engine** - a deterministic rule-based system that is faster, more predictable, and requires zero network access.
 
 ### The Executive Functioning Profile
 
@@ -114,7 +114,7 @@ Students with ADHD, dyslexia, or anxiety-related executive dysfunction don't all
 
 Plus 3 categorical preferences: **motivation style** (intrinsic / social / deadline / gamified), **peak time** (morning / midday / afternoon / evening), and **break style** (Pomodoro / deep work / flow / micro).
 
-The questionnaire maps answers to these dimensions using additive scoring (each answer adds a delta to one or more dimensions). The result is a `UserProfile` dataclass written to `user_profile.json` on the first run and loaded into RAM on every subsequent start — sub-millisecond access, no database query needed.
+The questionnaire maps answers to these dimensions using additive scoring (each answer adds a delta to one or more dimensions). The result is a `UserProfile` dataclass written to `user_profile.json` on the first run and loaded into RAM on every subsequent start - sub-millisecond access, no database query needed.
 
 ### The Daily Schedule Generator
 
@@ -127,7 +127,7 @@ Given a list of class slots and active tasks, the schedule generator fills the f
 5. For each free window, alternate: warmup (optional) → work block → break → work block → break… until the window fills or tasks run out.
 6. Work block duration is derived from `sustained_attention` and `break_style` (e.g., Pomodoro profile with high attention difficulty → 15 min blocks).
 
-This is O(n log n) in the number of tasks and O(k) in the number of schedule slots — fast enough to re-run on every page load.
+This is O(n log n) in the number of tasks and O(k) in the number of schedule slots - fast enough to re-run on every page load.
 
 ### The ICS Feed (no OAuth)
 
@@ -164,7 +164,7 @@ Keys are **never** stored in the database or `.env` file.
 
 ### The Beep Sound (Web Audio API)
 
-The focus timer alerts you with an audible "beep beep beep" when you switch tabs during a session. This uses the Web Audio API's `OscillatorNode` — a sine wave at 880 Hz fired three times with a linear gain envelope. No audio file is needed; the browser synthesises the tone from scratch. This keeps the project dependency-free and the bundle small.
+The focus timer alerts you with an audible "beep beep beep" when you switch tabs during a session. This uses the Web Audio API's `OscillatorNode` - a sine wave at 880 Hz fired three times with a linear gain envelope. No audio file is needed; the browser synthesises the tone from scratch. This keeps the project dependency-free and the bundle small.
 
 ---
 
@@ -240,7 +240,7 @@ studybuddy/
 |------|---------|---------|
 | Python | 3.11+ | [python.org](https://python.org) |
 | Node.js | 18+ | [nodejs.org](https://nodejs.org) |
-| Ollama | latest | [ollama.com](https://ollama.com) — optional, for AI |
+| Ollama | latest | [ollama.com](https://ollama.com) - optional, for AI |
 
 ### macOS / Linux
 
@@ -252,12 +252,12 @@ make setup                    # installs Python venv + npm deps
 make dev                      # starts backend :8000 + frontend :3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) — the onboarding wizard runs automatically.
+Open [http://localhost:3000](http://localhost:3000) - the onboarding wizard runs automatically.
 
 **One-click launchers:**
-- **macOS** — double-click `StudyBuddy.app` (right-click → Open on first run) or `launch.command`
-- **Linux** — `./start.sh`
-- **Windows** — double-click `launch.bat`
+- **macOS** - double-click `StudyBuddy.app` (right-click → Open on first run) or `launch.command`
+- **Linux** - `./start.sh`
+- **Windows** - double-click `launch.bat`
 
 ### Windows
 
@@ -269,7 +269,7 @@ make setup
 make dev
 ```
 
-*Requires GNU Make — install via [Chocolatey](https://chocolatey.org): `choco install make`*
+*Requires GNU Make - install via [Chocolatey](https://chocolatey.org): `choco install make`*
 
 ---
 
@@ -280,8 +280,8 @@ make dev
 | `DATABASE_URL` | `sqlite:///./studybuddy.db` | SQLite file path |
 | `OLLAMA_HOST` | `http://localhost:11434` | Local Ollama URL |
 | `OLLAMA_MODEL` | `qwen2.5:7b` | Model for syllabus extraction |
-| `ANTHROPIC_API_KEY` | _(blank)_ | Optional — stored in OS keychain via Settings UI |
-| `OPENAI_API_KEY` | _(blank)_ | Optional — stored in OS keychain via Settings UI |
+| `ANTHROPIC_API_KEY` | _(blank)_ | Optional - stored in OS keychain via Settings UI |
+| `OPENAI_API_KEY` | _(blank)_ | Optional - stored in OS keychain via Settings UI |
 | `TELEGRAM_BOT_TOKEN` | _(blank)_ | From [@BotFather](https://t.me/BotFather) |
 | `GMAIL_CLIENT_ID` | _(blank)_ | Google OAuth Desktop app credentials |
 | `GMAIL_CLIENT_SECRET` | _(blank)_ | Google OAuth Desktop app credentials |
@@ -309,7 +309,7 @@ make dev
 - **No telemetry, no analytics, no crash reporting** of any kind.
 - **Gmail is readonly.** The OAuth scope is `gmail.readonly`. The refresh token lives in your local SQLite DB.
 - **API keys live in your OS keychain.** They are never stored in the app database or committed to `.env`.
-- **Telegram** is the only external network call if configured — and only for messages you explicitly request.
+- **Telegram** is the only external network call if configured - and only for messages you explicitly request.
 
 ---
 
@@ -317,7 +317,7 @@ make dev
 
 | Decision | Alternatives considered | Why this one |
 |----------|------------------------|--------------|
-| SQLite | PostgreSQL, MongoDB | Single user, zero infrastructure — one file, zero config |
+| SQLite | PostgreSQL, MongoDB | Single user, zero infrastructure - one file, zero config |
 | FastAPI | Flask, Django | Native async, Pydantic v2, auto OpenAPI, lifespan hooks |
 | Next.js App Router | Vite + React SPA | Server-side shell renders instantly; explicit client boundary |
 | React Query | Redux, SWR, Zustand | Purpose-built for server state; stale-while-revalidate OOB |
@@ -332,4 +332,4 @@ make dev
 
 ## Built with Claude Code
 
-This project was designed and built iteratively using [Claude Code](https://claude.ai/code) by Anthropic — an agentic coding tool that can plan, implement, and refactor across multiple files in a single session.
+This project was designed and built iteratively using [Claude Code](https://claude.ai/code) by Anthropic - an agentic coding tool that can plan, implement, and refactor across multiple files in a single session.
