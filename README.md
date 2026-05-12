@@ -35,7 +35,6 @@ The core design philosophy is **local-first and offline-capable** - every featur
 | **Smart Daily Planner (Telegram)** | 🚧 In progress | Profile-driven schedule blocks sent each morning via bot |
 | **"Fix my day" one-tap reschedule** | 🔜 Planned | Detect overloaded days and propose a rebalanced plan |
 | **Spaced-repetition review reminders** | 🔜 Planned | Based on material understanding levels + time since last review |
-| **iOS shortcut integration** | 🔜 Planned | Add task to dashboard from iPhone Share Sheet |
 | **Multi-user / shared study groups** | 🔜 Planned | Architecture supports it; UI not built yet |
 
 ---
@@ -102,7 +101,7 @@ The replacement is a **Weighted Scoring Engine** - a deterministic rule-based sy
 
 ### The Executive Functioning Profile
 
-Students with ADHD, dyslexia, or anxiety-related executive dysfunction don't all need the same study structure. A single "25 minutes Pomodoro" advice ignores this. The onboarding questionnaire scores the user on **5 clinical dimensions**:
+Students don't all need the same study structure. A single "25 minutes Pomodoro" advice ignores this. The onboarding questionnaire scores the user on **5 clinical dimensions**:
 
 | Dimension | What it measures | Effect on the app |
 |-----------|-----------------|-------------------|
