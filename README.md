@@ -332,4 +332,4 @@ make dev
 
 ## Built with Claude Code
 
-This project was designed and built iteratively using [Claude Code](https://claude.ai/code) by Anthropic - an agentic coding tool that can plan, implement, and refactor across multiple files in a single session.
+This project was designed and built iteratively using [Claude Code](https://claude.ai/code) by Anthropic.
